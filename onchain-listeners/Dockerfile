@@ -1,18 +1,20 @@
-# Use the official Node.js image
-FROM node:18
+# Use a lightweight Node.js image
+FROM node:16-alpine
 
-# Create app directory
-WORKDIR /app
+# Set working directory
+WORKDIR /usr/src/app
 
-# Copy package.json and install dependencies
+# Copy package.json and package-lock.json
 COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy source code
+# Copy the rest of the application code
 COPY . .
 
-# Expose port
+# Expose the port your app will run on
 EXPOSE 8080
 
-# Run the app
+# Run the application
 CMD ["node", "server.js"]
