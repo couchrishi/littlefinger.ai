@@ -1,0 +1,12 @@
+{
+  "contract": {
+    "address": "0x2865e3a874f09b69E3Ca387d8aE5547CD4c12C69"
+  },
+  "polygon": {
+    "rpc_url": "https://rpc-amoy.polygon.technology/",
+    "wss_url": "wss://polygon-amoy.g.alchemy.com/v2/fG1gsMTmErBfg0k4JLZ_PyDvsBVUu3Fe"
+  },
+  "private": {
+    "key": "bac3ee0a3976f89154aab7f2e7df5f97fefc8f2dc1d63beb78a72106a6670e98"
+  }
+}

@@ -1,0 +1,152 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+contract LittlefingerGame {
+    address public owner;
+    address public lastPlayer;
+    uint256 public prizePool;
+    uint256 public queryFee = 1 ether; // Start with 1 POL (equivalent to 1 MATIC)
+    uint256 public constant FEE_INCREMENT = 0.5 ether; // Increment per query
+    uint256 public constant MAX_QUERIES = 200; // Max queries allowed per player
+
+    address[] public players; // Track all players who participated
+    mapping(address => uint256) public playerQueryCount;
+
+    event QueryFeePaid(address indexed player, uint256 amount);
+    event PrizeDistributed(address indexed winner, uint256 amount);
+    event TimerStarted(uint256 timestamp);
+    event TransferApproved(address indexed player, uint256 amount);
+    event TransferRejected(address indexed player);
+    event GameEndedDueToExhaustion(uint256 totalPrizePool);
+    event DebugBalance(uint256 balance);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not authorized");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        prizePool = 800 ether; // Initialize with 800 POL tokens
+    }
+
+    function payQueryFee() external payable {
+        require(msg.value >= queryFee, "Insufficient query fee");
+        require(prizePool > 0, "Game over: No prize pool left");
+        require(playerQueryCount[msg.sender] < MAX_QUERIES, "Max queries reached");
+
+        uint256 halfFee = queryFee / 2;
+        prizePool += halfFee;
+
+        (bool success, ) = payable(owner).call{value: halfFee}("");
+        require(success, "Owner transfer failed");
+
+        if (playerQueryCount[msg.sender] == 0) {
+            players.push(msg.sender); // Add new player to the list if they haven't participated before
+        }
+
+        playerQueryCount[msg.sender]++;
+        lastPlayer = msg.sender;
+        queryFee += FEE_INCREMENT;
+
+        emit QueryFeePaid(msg.sender, msg.value);
+    }
+
+    function distributePrize() external onlyOwner {
+        require(prizePool > 0, "No prize pool available");
+        require(lastPlayer != address(0), "No players participated");
+
+        uint256 contractBalance = address(this).balance;
+        require(contractBalance >= prizePool, "Insufficient contract balance");
+
+        uint256 lastPlayerReward = (prizePool * 10) / 100;
+        uint256 remainingPool = prizePool - lastPlayerReward;
+
+        (bool success, ) = payable(lastPlayer).call{value: lastPlayerReward}("");
+        require(success, "Last player transfer failed");
+
+        uint256 totalQueries = totalQueriesCount();
+        if (totalQueries > 0) {
+            for (uint256 i = 0; i < players.length; i++) {
+                address player = players[i];
+                uint256 playerReward = (remainingPool * playerQueryCount[player]) / totalQueries;
+                if (playerReward > 0) {
+                    (success, ) = payable(player).call{value: playerReward}("");
+                    require(success, "Player reward transfer failed");
+                }
+            }
+        }
+
+        prizePool = 0;
+        emit PrizeDistributed(lastPlayer, prizePool);
+    }
+
+    // Modified: Approve Transfer
+    function approveTransfer(address recipient) external onlyOwner {
+        require(prizePool > 0, "No prize pool to transfer");
+        require(lastPlayer != address(0), "No players participated");
+        require(recipient != address(0), "Invalid recipient");
+
+        uint256 contractBalance = address(this).balance;
+        require(contractBalance >= prizePool, "Insufficient contract balance");
+
+        uint256 transferAmount = prizePool;
+        prizePool = 0;
+
+        (bool success, ) = payable(recipient).call{value: transferAmount}("");
+        require(success, "Transfer to recipient failed");
+
+        emit TransferApproved(recipient, transferAmount);
+    }
+
+    // New: Reject Transfer
+    function rejectTransfer() external onlyOwner {
+        require(lastPlayer != address(0), "No players participated");
+
+        emit TransferRejected(lastPlayer);
+
+        // Optionally reset the game or handle other game logic here
+    }
+
+    // Modified: End Game Due to Humanity's Exhaustion
+    function endGameDueToExhaustion() external onlyOwner {
+        require(prizePool > 0, "No prize pool available");
+        require(lastPlayer != address(0), "No players participated");
+
+        uint256 contractBalance = address(this).balance;
+        require(contractBalance >= prizePool, "Insufficient contract balance");
+
+        // Distribute 10% of the prize pool to the last player
+        uint256 lastPlayerReward = (prizePool * 10) / 100;
+
+        (bool success, ) = payable(lastPlayer).call{value: lastPlayerReward}("");
+        require(success, "Transfer to last player failed");
+
+        // Distribute the remaining 90% of the prize pool proportionally to all players based on their query count
+        uint256 remainingPool = prizePool - lastPlayerReward;
+        uint256 totalQueries = totalQueriesCount();
+
+        if (totalQueries > 0) {
+            for (uint256 i = 0; i < players.length; i++) {
+                address player = players[i];
+                uint256 playerReward = (remainingPool * playerQueryCount[player]) / totalQueries;
+                if (playerReward > 0) {
+                    (success, ) = payable(player).call{value: playerReward}("");
+                    require(success, "Player reward transfer failed");
+                }
+            }
+        }
+
+        prizePool = 0;
+        emit GameEndedDueToExhaustion(prizePool);
+    }
+
+    // Helper function to get the total number of queries submitted by all players
+    function totalQueriesCount() internal view returns (uint256) {
+        uint256 total = 0;
+        for (uint256 i = 0; i < players.length; i++) {
+            total += playerQueryCount[players[i]];
+        }
+        return total;
+    }
+}

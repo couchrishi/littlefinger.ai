@@ -1,0 +1,19 @@
+{
+  "name": "hardhat-project",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "chai": "^5.1.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.22.16",
+    "hardhat-gas-reporter": "^2.2.2",
+    "solidity-coverage": "^0.8.14"
+  },
+  "dependencies": {
+    "@ethereum-waffle/chai": "^4.0.10",
+    "@google-cloud/secret-manager": "^5.6.0",
+    "firebase-admin": "^13.0.1"
+  }
+}
