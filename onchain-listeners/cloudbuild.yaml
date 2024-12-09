@@ -1,5 +1,7 @@
+serviceAccount: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
+
 options:
-  defaultLogsBucketBehavior: "REGIONAL_USER_OWNED_BUCKET"
+  logging: "CLOUD_LOGGING_ONLY"
 
 steps:
   - name: 'gcr.io/cloud-builders/docker'
@@ -11,10 +13,7 @@ steps:
 
   - name: 'gcr.io/cloud-builders/gcloud'
     args: ['run', 'deploy', 'onchain-listeners',
-           '--image', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA',
-           '--region', 'asia-southeast1',
-           '--allow-unauthenticated']
-
-substitutions:
-  _SERVICE_NAME: 'onchain-listeners'
-  _REGION: 'asia-southeast1'
+         '--image', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA',
+         '--region', 'asia-southeast1',
+         '--allow-unauthenticated',
+         '--service-account', 'saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com']

@@ -134,7 +134,6 @@ async function listenForPlayerActionEvents(network) {
         const breakinAttempts = queries;
 
         console.log("🏦 Total Break-in Attempts:", breakinAttempts);
-
         await updateFirestore(network, "breakInAttempts", breakinAttempts);
       } catch (error) {
         console.error("❌ Error processing TotalQueries event:", error);

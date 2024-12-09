@@ -1,6 +1,9 @@
 const { listenForPlayerActionEvents } = require("./listeners/playerActionListeners");
+const express = require('express');
+const app = express();
 //const { listenForNextQueryFeeEvent } = require("./listeners/nextQueryFeeListener");
 
+const PORT = process.env.PORT || 8080; // Port required by Cloud Run
 const network = process.argv[2] || "testnet";
 
 if (!["testnet", "mainnet"].includes(network)) {
@@ -24,3 +27,12 @@ if (!["testnet", "mainnet"].includes(network)) {
     process.exit(1);
   }
 })();
+
+// 🚀 Dummy HTTP server to keep the container alive
+app.get('/', (req, res) => {
+  res.send('🎉 On-chain listeners are running!');
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Dummy HTTP server is listening on port ${PORT}`);
+});
