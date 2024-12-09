@@ -6,6 +6,9 @@ const app = express();
 const PORT = process.env.PORT || 8080; // Port required by Cloud Run
 const network = process.argv[2] || "testnet";
 
+app.get('/', (req, res) => res.send('🎉 On-chain listeners are running!'));
+app.get('/healthz', (req, res) => res.status(200).send('OK'));
+
 if (!["testnet", "mainnet"].includes(network)) {
   console.error("❌ Invalid network. Use 'testnet' or 'mainnet'.");
   process.exit(1);
@@ -27,11 +30,6 @@ if (!["testnet", "mainnet"].includes(network)) {
     process.exit(1);
   }
 })();
-
-// 🚀 Dummy HTTP server to keep the container alive
-app.get('/', (req, res) => {
-  res.send('🎉 On-chain listeners are running!');
-});
 
 app.listen(PORT, () => {
   console.log(`🚀 Dummy HTTP server is listening on port ${PORT}`);
