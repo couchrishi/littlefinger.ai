@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add custom colors */
+@layer utilities {
+  .bg-cyber-dark {
+    background-color: #1a1a1a; /* Dark grey, almost black */
+  }
+
+  .text-cyber-green {
+    color: #39ff14; /* Neon green */
+  }
+
+  .text-cyber-purple {
+    color: #a020f0; /* Cyberpunk-inspired purple */
+  }
+
+  /* Chat container scroll behavior */
+  .chat-container {
+    overflow-y: auto; /* Ensure scrolling stays within the chat container */
+    overscroll-behavior: contain; /* Prevent page scroll during container scroll */
+  }
+
+  /* Prevent body scroll during chat interactions */
+  .disable-body-scroll {
+    overflow: hidden; /* Disable body scroll */
+  }
+}
