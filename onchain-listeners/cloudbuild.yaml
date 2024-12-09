@@ -1,14 +1,14 @@
+options:
+  defaultLogsBucketBehavior: "REGIONAL_USER_OWNED_BUCKET"
+
 steps:
-  # 1️⃣ Step 1: Build the Docker image for onchain-listeners
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA', '.']
     dir: 'onchain-listeners'
 
-  # 2️⃣ Step 2: Push the Docker image to Google Container Registry (GCR)
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA']
 
-  # 3️⃣ Step 3: Deploy the service to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
     args: ['run', 'deploy', 'onchain-listeners',
            '--image', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA',
