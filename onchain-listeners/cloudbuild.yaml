@@ -18,8 +18,3 @@ steps:
 substitutions:
   _SERVICE_NAME: 'onchain-listeners'
   _REGION: 'asia-southeast1'
-
-# ✅ Only trigger on changes to files in the onchain-listeners folder
-trigger:
-  - includePaths:
-      - 'onchain-listeners/**'
