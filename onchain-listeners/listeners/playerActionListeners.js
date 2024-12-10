@@ -7,6 +7,8 @@ const RETRY_DELAY_MS = 5000;
 let retryTimeout; // For managing retries
 let webSocketProvider; // Global instance for WebSocket Provider
 let rpcProvider; // Global instance for RPC Provider
+const PING_INTERVAL_MS = 60000; // Send a ping every 60 seconds
+
 
 async function listenForPlayerActionEvents(network) {
   try {
@@ -35,8 +37,21 @@ async function listenForPlayerActionEvents(network) {
       throw new Error('❌ provider.websocket is undefined after provider.ready!');
     }
 
+    // webSocketProvider.websocket.addEventListener("open", () => {
+    //   console.log('✅ WebSocket connected!');
+    // });
+
     webSocketProvider.websocket.addEventListener("open", () => {
       console.log('✅ WebSocket connected!');
+    
+      setInterval(() => {
+        console.log("🔄 Sending WebSocket ping to keep connection alive");
+        try {
+          webSocketProvider.websocket.ping();
+        } catch (error) {
+          console.error("⚠️ Error sending ping:", error.message);
+        }
+      }, PING_INTERVAL_MS);
     });
 
     webSocketProvider.websocket.addEventListener("close", (event) => {

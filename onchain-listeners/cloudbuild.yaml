@@ -1,19 +1,31 @@
-serviceAccount: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
-
 options:
   logging: "CLOUD_LOGGING_ONLY"
 
 steps:
+  # 1️⃣ Step 1: Build the Docker image for onchain-listeners
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA', '.']
     dir: 'onchain-listeners'
 
+  # 2️⃣ Step 2: Push the Docker image to Google Container Registry (GCR)
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA']
 
+  # 3️⃣ Step 3: Deploy the service to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['run', 'deploy', 'onchain-listeners',
-         '--image', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA',
-         '--region', 'asia-southeast1',
-         '--allow-unauthenticated',
-         '--service-account', 'saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com']
+    args: [
+      'run', 'deploy', 'onchain-listeners',
+      '--image', 'gcr.io/$PROJECT_ID/onchain-listeners:$COMMIT_SHA',
+      '--region', 'asia-southeast1',
+      '--allow-unauthenticated',
+      '--service-account', 'saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com',
+      '--memory', '2Gi',
+      '--cpu', '4',
+      '--min-instances', '1',
+      '--max-instances', '10', # Optional (you can adjust max as per your scaling needs)
+      '--concurrency', '500'
+    ]
+
+substitutions:
+  _SERVICE_NAME: 'onchain-listeners'
+  _REGION: 'asia-southeast1'
