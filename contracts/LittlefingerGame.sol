@@ -2,9 +2,10 @@
 pragma solidity ^0.8.18;
 
 contract LittlefingerGame {
-    // State Variables
+    // State Variables *********
     address public owner;
     address public lastPlayer;
+    uint256 public totalUniquePlayers=0;
     uint256 public globalQueryCount = 0;
     uint256 public MAX_QUERIES = 5000;
     uint256 public IDLE_TIME_LIMIT = 7 days;
@@ -33,6 +34,8 @@ contract LittlefingerGame {
     event MaxQueriesUpdated(uint256 newMaxQueries);
     event IdleTimeLimitUpdated(uint256 newIdleTimeLimit);
     event MaxQueryFeeUpdated(uint256 newMaxQueryFee);
+    event TotalParticipants(uint256 totalUniquePlayers);
+
 
     // Custom Errors
     error GameExhausted();
@@ -79,7 +82,10 @@ contract LittlefingerGame {
         (bool success, ) = payable(owner).call{value: ownerAmount}("");
         require(success, "Owner transfer failed");
 
-        if (playerQueryCount[msg.sender] == 0) players.push(msg.sender);
+        if (playerQueryCount[msg.sender] == 0) {
+            players.push(msg.sender);
+            totalUniquePlayers ++; // Increment the totalUniquePlayers count
+        }
 
         playerQueryCount[msg.sender]++;
         playerTotalFee[msg.sender] += currentFee;
@@ -92,9 +98,10 @@ contract LittlefingerGame {
         emit CurrentPrizePool(prizePool());
         emit GameIdleSince(lastInteraction);
         emit TotalQueries(globalQueryCount);
+        emit TotalParticipants(totalUniquePlayers);
     }
 
-    // **End Game**
+    // *****End Game*******
     function endGameDueToExhaustion() external onlyOwner {
         require(!gameEnded, "Game has already ended");
 
@@ -151,7 +158,7 @@ contract LittlefingerGame {
         return result;
     }
 
-    // **Calculate Next Query Fee (Updated)**
+    // **Calculate Next Query Fee (Updated)****
     function calculateNextQueryFee() public view returns (uint256) {
         if (globalQueryCount <= 30) {
             return 0.005 ether + (0.001 ether * (globalQueryCount + 1));
@@ -164,7 +171,7 @@ contract LittlefingerGame {
         }
     }
 
-    // **Approve Transfer Function**
+    // ***** Approve Transfer Function for prize money *******
     function approveTransfer(address recipient) external onlyOwner {
         if (prizePool() == 0) revert GameExhausted();
         if (recipient == address(0)) revert InvalidRecipient();
@@ -177,13 +184,14 @@ contract LittlefingerGame {
         emit PrizeTransferApproved(recipient, transferAmount);
     }
 
-    // **Withdraw Function**
+    // **Withdraw Function******
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds available for withdrawal");
         (bool success, ) = payable(owner).call{value: balance}("");
         require(success, "Withdrawal failed");
         emit Withdrawal(owner, balance);
+        emit CurrentPrizePool(address(this).balance);
     }
 
     // Reset Game Logic

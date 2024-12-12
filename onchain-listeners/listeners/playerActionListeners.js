@@ -4,74 +4,102 @@ const { getNetworkSecrets } = require("../utils/secrets");
 const { admin, firestore } = require('../config/firebase'); 
 
 const RETRY_DELAY_MS = 5000;
-let retryTimeout; // For managing retries
-let webSocketProvider; // Global instance for WebSocket Provider
-let rpcProvider; // Global instance for RPC Provider
-const PING_INTERVAL_MS = 60000; // Send a ping every 60 seconds
+const MAX_RETRY_DELAY_MS = 60000;
+let retryCount = 0;
+let retryTimeout;
+let webSocketProvider;
+let contract; // ✅ Global variable for contract instance
+let rpcProvider;
+const PING_INTERVAL_MS = 60000;
+
+// 📢 Firestore listener reference
+let firestoreUnsubscribe = null;
+
+/**
+ * 🚀 Firestore listener for contract changes
+ */
+function listenToFirestoreForContractChanges(network) {
+  console.log(`👂 Listening for changes in littlefinger-frontend-config/${network}`);
+  
+  const docRef = firestore.collection('littlefinger-frontend-config').doc(network);
+  
+  firestoreUnsubscribe = docRef.onSnapshot((doc) => {
+    if (!doc.exists) {
+      console.warn(`⚠️ No document found for network: ${network}`);
+      return;
+    }
+
+    //const { contract: contract, abi: abi } = doc.data();
+    newContractAddress = doc.data().contract.address;
+    newAbi= doc.data().abi_json.abi;
+    console.log('🛠️ Contract changes detected:', { "newContract": newContractAddress, "newAbi": newAbi });
+
+
+    // Re-initialize the contract listeners with new contract data
+    restartListeners(network, newContractAddress, newAbi);
+  }, (error) => {
+    console.error('❌ Firestore listener error:', error);
+  });
+}
 
 
 async function listenForPlayerActionEvents(network) {
   try {
     const { CONTRACT_ADDRESS, WSS_URL, RPC_URL } = await getNetworkSecrets(network);
-    const cleanedContractAddress = CONTRACT_ADDRESS.replace(/^['"]|['"]$/g, '').trim();
-    const cleanedWSS_URL = WSS_URL.replace(/^['"]|['"]$/g, '').trim(); 
-    const cleanedRPC_URL = RPC_URL.replace(/^['"]|['"]$/g, '').trim();
+    const cleanedContractAddress = CONTRACT_ADDRESS.trim();
+    const cleanedWSS_URL = WSS_URL.trim(); 
+    const cleanedRPC_URL = RPC_URL.trim();
 
     console.log('🔍 Cleaned Network Secrets:', { CONTRACT_ADDRESS: cleanedContractAddress, WSS_URL: cleanedWSS_URL, RPC_URL: cleanedRPC_URL });
+    
+    // 🚀 Start Firestore listener for contract changes
+    if (!firestoreUnsubscribe) {
+      listenToFirestoreForContractChanges(network);
+    }
 
-    // ✅ Check if the WebSocketProvider is already initialized, if so, reuse it
     if (!webSocketProvider) {
+      console.log('🌐 Initializing new WebSocket Provider...');
       webSocketProvider = new WebSocketProvider(cleanedWSS_URL);
-      console.log('🌐 New WebSocket Provider created and connected.');
+      webSocketProvider.on('network', handleNetworkChange);
+      webSocketProvider.on('error', handleWebSocketError);
     } else {
       console.log('🌐 Reusing existing WebSocket Provider.');
     }
 
-    // const provider = new WebSocketProvider(cleanedWSS_URL);
-    // if (!provider) throw new Error('❌ Provider is undefined! Check WSS URL.');
-
     await webSocketProvider.ready;
-    console.log('✅ Websocket Provider connected successfully!');
-
-    if (!webSocketProvider.websocket) {
-      throw new Error('❌ provider.websocket is undefined after provider.ready!');
-    }
-
-    // webSocketProvider.websocket.addEventListener("open", () => {
-    //   console.log('✅ WebSocket connected!');
-    // });
-
-    webSocketProvider.websocket.addEventListener("open", () => {
-      console.log('✅ WebSocket connected!');
+    console.log('✅ WebSocket connected!');
     
-      setInterval(() => {
-        console.log("🔄 Sending WebSocket ping to keep connection alive");
-        try {
-          webSocketProvider.websocket.ping();
-        } catch (error) {
-          console.error("⚠️ Error sending ping:", error.message);
-        }
-      }, PING_INTERVAL_MS);
-    });
+    const abiDocRef = firestore.collection('littlefinger-frontend-config').doc(network);
 
-    webSocketProvider.websocket.addEventListener("close", (event) => {
-      console.error(`❌ WebSocket closed. Code: ${event.code}. Reconnecting in ${RETRY_DELAY_MS}ms...`);
-      if (retryTimeout) clearTimeout(retryTimeout);
-      retryTimeout = setTimeout(() => listenForPlayerActionEvents(network), RETRY_DELAY_MS);
-    });
+    try {
+      // 🔥 Step 1: Get the ABI document from Firestore
+      const abiDocSnapshot = await abiDocRef.get(); // Wait for the document to be retrieved
+      if (!abiDocSnapshot.exists) {
+        console.error(`❌ No ABI config found for network: ${network}`);
+        throw new Error(`ABI not found for network: ${network}`);
+      }
 
-    webSocketProvider.websocket.addEventListener("error", (error) => {
-      console.error("⚠️ WebSocket error:", error.message);
-      if (retryTimeout) clearTimeout(retryTimeout);
-      retryTimeout = setTimeout(() => listenForPlayerActionEvents(network), RETRY_DELAY_MS);
-    });
+      // 🔥 Step 2: Extract the ABI from the document
+      const abiData = abiDocSnapshot.data();
+      if (!abiData || !abiData.abi_json || !Array.isArray(abiData.abi_json.abi)) {
+        console.error(`❌ Invalid ABI structure for network: ${network}`);
+        throw new Error(`ABI is missing or not properly structured for network: ${network}`);
+      }
 
-    const abi = require("../abis/LittlefingerGame.json")?.abi;
-    if (!abi) throw new Error('❌ ABI is undefined or not found');
+      // ✅ Step 3: Extract and set the ABI
+      const abi = abiData.abi_json.abi; // Ensure this is an array (required for Ethers.js Contract)
 
-    const contract = new Contract(cleanedContractAddress, abi, webSocketProvider);
-    if (!contract) throw new Error('❌ Contract instance is undefined.');
-    console.log('🧐 Contract initialized successfully');
+      console.log(`✅ ABI loaded for network ${network}:`, abi);
+      
+      // 🔥 Step 4: Initialize the Contract with ABI, Contract Address, and Provider
+      contract = new Contract(cleanedContractAddress, abi, webSocketProvider);
+      console.log('🧐 Contract initialized successfully');
+      
+    } catch (error) {
+      console.error('❌ Error initializing contract:', error.message);
+      // Optional: Re-throw the error if needed for upper-level handling
+      throw error;
+    }
 
     /**
      * 🔥 Handle QueryFeePaid Event
@@ -101,6 +129,7 @@ async function listenForPlayerActionEvents(network) {
       }
     });
 
+  
     /**
      * 🔥 Handle NextQueryFee Event
      */
@@ -155,114 +184,88 @@ async function listenForPlayerActionEvents(network) {
       }
     });
 
-    console.log("🎉 PlayerActionListeners is running...");
+    console.log("🎉 All playerActionListeners is running...");
+    resetRetryCount();
   } catch (error) {
     console.error("❌ Error in listenForPlayerActionEvents:", error);
-    console.log(`🔄 Retrying in ${RETRY_DELAY_MS} ms...`);
-    return setTimeout(() => listenForPlayerActionEvents(network), RETRY_DELAY_MS);
+    scheduleRestart(network);
   }
 }
 
+function handleNetworkChange(newNetwork, oldNetwork) {
+  if (oldNetwork) {
+    console.log(`🔄 Network changed from ${oldNetwork.chainId} to ${newNetwork.chainId}`);
+  }
+}
 
+function handleWebSocketError(error) {
+  console.error("⚠️ WebSocket error:", error.message);
+  scheduleRestart();
+}
 
-/**
- * 🔥 Update Firestore for transaction status
- */
-async function updateTransactionStatus(network, queryID, transactionHash, transactionReceiptStatus, RPC_URL) {
+function scheduleRestart(network) {
+  if (retryTimeout) clearTimeout(retryTimeout);
+  const delay = Math.min(RETRY_DELAY_MS * (2 ** retryCount), MAX_RETRY_DELAY_MS);
+  retryCount++;
+  console.log(`🔄 Restarting in ${delay / 1000} seconds...`);
+  retryTimeout = setTimeout(() => listenForPlayerActionEvents(network), delay);
+}
+
+function resetRetryCount() {
+  retryCount = 0;
+}
+
+async function updateTransactionStatus(network, queryID, transactionHash, status, RPC_URL) {
   const transactionRef = firestore.collection('littlefinger-transactions').doc(network);
-
   await firestore.runTransaction(async (transaction) => {
-    const transactionDoc = await transaction.get(transactionRef);
-    const data = transactionDoc.exists ? transactionDoc.data() : {};
-
-    if (data[queryID]) {
-      console.log(`🧐 Existing transaction found for queryID: ${queryID}`);
-      
-      if (data[queryID] && data[queryID].transactionHash !== transactionHash) {
-        throw new Error(`❌ Transaction hash mismatch for queryID: ${queryID}`);
+    transaction.set(transactionRef, {
+      [queryID]: {
+        transactionHash: transactionHash,
+        transactionReceiptStatus: status,
+        lastModifiedAt: new Date().toISOString()
       }
-      
-      if (data[queryID].transactionReceiptStatus !== 'success') {
-        transaction.set(transactionRef, {
-          [queryID]: {
-            transactionHash: transactionHash,
-            transactionReceiptStatus: transactionReceiptStatus,
-            lastModifiedAt: new Date().toISOString() // 🔥 Add lastModifiedAt field with current timestamp
-          }
-        }, { merge: true });
-        console.log(`✅ Updated receipt status to '${transactionReceiptStatus}' for queryID: ${queryID}`);
-      } else {
-        console.log(`⚠️ Skipped update since receipt status is already 'success' for queryID: ${queryID}`);
-      }
-    } else {
-      console.log(`📘 No existing entry for queryID: ${queryID}. Creating one...`);
-      transaction.set(transactionRef, {
-        [queryID]: {
-          transactionHash: transactionHash,
-          transactionReceiptStatus: transactionReceiptStatus || 'pending',
-          lastModifiedAt: new Date().toISOString() // 🔥 Add lastModifiedAt field with current timestamp
-        }
-      }, { merge: true });
-      console.log(`✅ Document created for queryID: ${queryID}`);
-    }
-
+    }, { merge: true });
   });
-  // 🚀 Check if the transaction is already successful. If yes, skip tracking.
-  if (transactionReceiptStatus === 'success') {
-    console.log(`⚠️ Skipping trackTransaction as receipt status is already 'success' for TX: ${transactionHash}`);
-    return; // 🚀 Skip tracking
+  console.log(`✅ Updated transaction for queryID: ${queryID} with status : ${status} `);
+
+  // If the transaction is already successful, no need to track further
+  if (status === "success") {
+    console.log(`⚠️ Skipping trackTransaction as status is already 'success' for TX: ${transactionHash}`);
+    return;
   }
 
-  // 🚀 Call Hybrid Tracker for Transaction Status
+  // Start tracking the transaction
   await trackTransaction(network, queryID, transactionHash, RPC_URL);
-
 }
 
-/**
- * 🚀 Hybrid tracker for transaction receipt confirmation (WebSocket + Polling Fallback)
- */
 async function trackTransaction(network, queryID, transactionHash, RPC_URL) {
-  console.log("🚀 Starting to track transaction:", transactionHash);
-
-   // ✅ Check if the RPC provider is already initialized, if so, reuse it
-   if (!rpcProvider) {
-      rpcProvider = new JsonRpcProvider(RPC_URL);
-      console.log('🌐 New RPC Provider created and connected.');
-    } else {
-      console.log('🌐 Reusing existing RPC Provider.');
-    }
-
-  // console.log("RPC provider: ", RPC_URL);
-  // const provider = new JsonRpcProvider('https://polygon-amoy.g.alchemy.com/v2/fG1gsMTmErBfg0k4JLZ_PyDvsBVUu3Fe');
-  let isComplete = false;
-
   console.log(`🚀 Tracking transaction: ${transactionHash} for queryID: ${queryID}`);
-
-  // 🔥 WebSocket Listener
+  let isComplete = false;
+  if (!rpcProvider) {
+    rpcProvider = new JsonRpcProvider(RPC_URL);
+    console.log("🌐 RPC Provider initialized.");
+  }
+  
+  // WebSocket listener for transaction receipt
   rpcProvider.once(transactionHash, async (receipt) => {
-    if (isComplete) return; // Prevent re-execution if already complete
-    isComplete = true; // 🛑 Stop further tracking
+    if (isComplete) return; // Prevent duplicate processing
+    isComplete = true;
 
     const txReceiptStatus = receipt.status === 1 ? "success" : "failure";
     console.log(`📡 WebSocket confirmation received for TX: ${transactionHash}`);
     console.log(`🔄 Receipt Status: ${txReceiptStatus}`);
 
-    try {
-      await updateTransactionStatus(network, queryID, transactionHash, txReceiptStatus);
-      console.log(`✅ Firestore updated via WebSocket for TX: ${transactionHash}`);
-    } catch (error) {
-      console.error(`❌ Failed to update Firestore via WebSocket for TX: ${transactionHash}`, error);
-    }
+    await updateTransactionStatus(network, queryID, transactionHash, txReceiptStatus, RPC_URL);
   });
 
-  // 🔥 Polling Fallback
+  // Polling fallback
   let attempts = 0;
-  const maxAttempts = 10; // Retry 10 times (10 * pollingInterval = 100 seconds)
+  const maxAttempts = 10; // Retry 10 times (100 seconds total)
   const pollingInterval = 10000; // Poll every 10 seconds
 
   const intervalId = setInterval(async () => {
     if (isComplete) {
-      clearInterval(intervalId); // ✅ Stop polling if WebSocket succeeds
+      clearInterval(intervalId); // Stop polling if already complete
       return;
     }
 
@@ -277,19 +280,14 @@ async function trackTransaction(network, queryID, transactionHash, RPC_URL) {
         console.log(`📋 Polling confirmation received for TX: ${transactionHash}`);
         console.log(`🔄 Receipt Status: ${txReceiptStatus}`);
 
-        try {
-          await updateTransactionStatus(network, queryID, transactionHash, txReceiptStatus);
-          console.log(`✅ Firestore updated via Polling for TX: ${transactionHash}`);
-        } catch (error) {
-          console.error(`❌ Failed to update Firestore via Polling for TX: ${transactionHash}`, error);
-        }
-        clearInterval(intervalId); // 🛑 Stop further polling
+        await updateTransactionStatus(network, queryID, transactionHash, txReceiptStatus, RPC_URL);
+        clearInterval(intervalId); // Stop polling
       } else if (attempts >= maxAttempts) {
         console.warn(`⚠️ Max polling attempts reached for TX: ${transactionHash}`);
         clearInterval(intervalId);
       }
     } catch (error) {
-      console.error(`❌ Error while polling for receipt of TX: ${transactionHash}`, error);
+      console.error(`❌ Error while polling for TX: ${transactionHash}`, error);
     }
   }, pollingInterval);
 }
@@ -297,25 +295,74 @@ async function trackTransaction(network, queryID, transactionHash, RPC_URL) {
 async function updateFirestore(network, field, value) {
   const statsRef = firestore.collection("littlefinger-stats").doc(network);
   await firestore.runTransaction(async (transaction) => {
-    transaction.set(
-      statsRef,
-      { [field]: value,
-        lastModifiedAt: new Date().toISOString() // 🔥 Add lastModifiedAt field with current timestamp
-       }, 
-      { merge: true }
-    );
+    transaction.set(statsRef, { [field]: value, lastModifiedAt: new Date().toISOString() }, { merge: true });
   });
-
   console.log(`📊 Firestore updated: ${field} = ${value} for network: ${network}`);
 }
 
+/**
+ * 🚀 Restart contract event listeners
+ */
+async function restartListeners(network, newContractAddress, newAbi) {
+  try {
+    console.log('🔄 Restarting contract listeners with new contract info...');
+
+    if (contract) {
+      // ⚠️ Remove all existing listeners to prevent duplicates
+      console.log('⚠️ Removing all existing listeners from the contract.');
+      contract.removeAllListeners();
+    }
+
+    if (newContractAddress && newAbi) {
+      const abi = newAbi;
+      console.log(`🔄 Restarting listeners with new contract: ${newContractAddress}`);
+
+      // 📢 Create new contract instance with new ABI and address
+      const contract = new Contract(newContractAddress, abi, webSocketProvider);
+
+      console.log('🧐 Contract initialized successfully with new ABI and address');
+
+      // 🛠️ Reattach all the event listeners
+      contract.on("QueryFeePaid", async (player, feeAmount, queryID, blockNumber, timestamp, event) => {
+        console.log("\n🔥 QueryFeePaid Event Detected");
+        const transactionHash = event?.log?.transactionHash || null;
+        await updateTransactionStatus(network, queryID, transactionHash, 'success');
+      });
+
+      contract.on("NextQueryFee", async (nextFee, currentCount) => {
+        console.log("\n🔥 NextQueryFee Event Detected");
+        const feeInEth = ethers.formatUnits(nextFee, 18);
+        await updateFirestore(network, "interactionCost", feeInEth);
+      });
+
+      contract.on("CurrentPrizePool", async (prizePool) => {
+        console.log("\n🔥 CurrentPrizePool Event Detected");
+        const prizePoolInEth = ethers.formatUnits(prizePool, 18);
+        await updateFirestore(network, "currentPrizePool", prizePoolInEth);
+      });
+
+      contract.on("TotalQueries", async (queries) => {
+        console.log("\n🔥 TotalQueries Event Detected");
+        await updateFirestore(network, "breakInAttempts", queries);
+      });
+
+      console.log("✅ Event listeners successfully re-attached with new contract.");
+    } else {
+      console.warn('⚠️ Missing contract address or ABI.');
+    }
+  } catch (error) {
+    console.error('❌ Error restarting listeners:', error);
+  }
+}
 
 process.on('unhandledRejection', (error) => {
   console.error('🚨 Unhandled promise rejection:', error);
+  scheduleRestart();
 });
 
 process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught exception:', error);
+  scheduleRestart();
 });
 
 module.exports = { listenForPlayerActionEvents };

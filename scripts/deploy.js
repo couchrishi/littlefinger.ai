@@ -1,7 +1,12 @@
 const hre = require("hardhat");
+const path = require('path');
+//require('dotenv').config(); // ✅ Load .env variables
+//require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+require('dotenv').config()
 
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
+  console.log(deployer);
 
   console.log("Deploying contract with the account:", deployer.address);
   console.log("Account balance:", (await deployer.getBalance()).toString());

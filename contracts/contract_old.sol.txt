@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 contract LittlefingerGame {
-    // State Variables
+    // State Variables *********
     address public owner;
     address public lastPlayer;
     uint256 public globalQueryCount = 0;
@@ -24,6 +24,7 @@ contract LittlefingerGame {
     event LastPlayerRewardAfterGameExhaustion(address indexed player, uint256 amount);
     event RestOfThePlayersRewardAfterGameExhaustion(uint256 totalAmount);
     event CurrentPrizePool(uint256 prizePool);
+    event TotalQueries(uint256 globalQueryCount);
     event GameStarted(uint256 timestamp);
     event GameIdleSince(uint256 lastInteraction);
     event GameEnded(uint256 currentTimestamp, uint256 lastInteraction);
@@ -61,7 +62,7 @@ contract LittlefingerGame {
         gameEnded = false;
     }
 
-    // Submit a query with payment
+    // **Submit Query**
     function submitQuery(string memory query, string memory queryID) external payable checkIdleTime {
         if (gameEnded) revert GameExhausted();
         if (msg.sender == owner) revert Unauthorized();
@@ -90,9 +91,10 @@ contract LittlefingerGame {
         emit NextQueryFee(calculateNextQueryFee(), globalQueryCount);
         emit CurrentPrizePool(prizePool());
         emit GameIdleSince(lastInteraction);
+        emit TotalQueries(globalQueryCount);
     }
 
-    // End game due to exhaustion
+    // *****End Game*******
     function endGameDueToExhaustion() external onlyOwner {
         require(!gameEnded, "Game has already ended");
 
@@ -127,7 +129,42 @@ contract LittlefingerGame {
         emit CurrentPrizePool(prizePool());
     }
 
-    // **Approve Transfer Function**
+    // **Calculate Query Fee (Updated)**
+    function calculateQueryFee() public view returns (uint256) {
+        if (globalQueryCount <= 30) {
+            return 0.005 ether + (0.001 ether * globalQueryCount);
+        } else {
+            uint256 lastLinearFee = 0.005 ether + (0.001 ether * 30);
+            uint256 exponent = globalQueryCount - 30;
+            uint256 exponentialGrowth = safeExp(125, exponent) / safeExp(100, exponent);
+            uint256 fee = lastLinearFee * exponentialGrowth;
+            return fee > MAX_QUERY_FEE ? MAX_QUERY_FEE : fee;
+        }
+    }
+
+    function safeExp(uint256 base, uint256 exp) internal pure returns (uint256) {
+        uint256 result = 1;
+        for (uint256 i = 0; i < exp; i++) {
+            result *= base;
+            if (result > type(uint256).max / base) return type(uint256).max; // Prevent overflow
+        }
+        return result;
+    }
+
+    // **Calculate Next Query Fee (Updated)****
+    function calculateNextQueryFee() public view returns (uint256) {
+        if (globalQueryCount <= 30) {
+            return 0.005 ether + (0.001 ether * (globalQueryCount + 1));
+        } else {
+            uint256 lastLinearFee = 0.005 ether + (0.001 ether * 30);
+            uint256 exponent = globalQueryCount + 1 - 30;
+            uint256 exponentialGrowth = safeExp(125, exponent) / safeExp(100, exponent);
+            uint256 nextFee = lastLinearFee * exponentialGrowth;
+            return nextFee > MAX_QUERY_FEE ? MAX_QUERY_FEE : nextFee;
+        }
+    }
+
+    // ***** Approve Transfer Function for prize money *******
     function approveTransfer(address recipient) external onlyOwner {
         if (prizePool() == 0) revert GameExhausted();
         if (recipient == address(0)) revert InvalidRecipient();
@@ -140,13 +177,14 @@ contract LittlefingerGame {
         emit PrizeTransferApproved(recipient, transferAmount);
     }
 
-    // **Withdraw Function**
+    // **Withdraw Function******
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds available for withdrawal");
         (bool success, ) = payable(owner).call{value: balance}("");
         require(success, "Withdrawal failed");
         emit Withdrawal(owner, balance);
+        emit CurrentPrizePool(address(this).balance);
     }
 
     // Reset Game Logic
@@ -191,31 +229,6 @@ contract LittlefingerGame {
         MAX_QUERY_FEE = newMaxQueryFee;
         emit MaxQueryFeeUpdated(newMaxQueryFee);
     }
-
-    // Calculate Query Fee
-    function calculateQueryFee() public view returns (uint256) {
-        if (globalQueryCount <= 30) {
-            return 0.005 ether + (0.001 ether * globalQueryCount);
-        } else {
-            uint256 lastLinearFee = 0.005 ether + (0.001 ether * 30);
-            uint256 exponentialGrowth = (125 ** (globalQueryCount - 30)) / (100 ** (globalQueryCount - 30));
-            uint256 fee = lastLinearFee * exponentialGrowth;
-            return fee > MAX_QUERY_FEE ? MAX_QUERY_FEE : fee;
-        }
-    }
-
-    // Calculate the next query fee
-    function calculateNextQueryFee() public view returns (uint256) {
-        if (globalQueryCount <= 30) {
-            return 0.005 ether + (0.001 ether * (globalQueryCount + 1));
-        } else {
-            uint256 lastLinearFee = 0.005 ether + (0.001 ether * 30);
-            uint256 exponentialGrowth = (125 ** (globalQueryCount + 1 - 30)) / (100 ** (globalQueryCount + 1 - 30));
-            uint256 nextFee = lastLinearFee * exponentialGrowth;
-            return nextFee > MAX_QUERY_FEE ? MAX_QUERY_FEE : nextFee;
-        }
-    }
-
 
     function prizePool() public view returns (uint256) {
         return address(this).balance;

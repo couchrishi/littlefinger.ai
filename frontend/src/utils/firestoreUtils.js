@@ -47,3 +47,25 @@ export const listenForGlobalChat = (networkKey, callback) => {
     throw error;
   }
 };
+
+/**
+ * 🔥 Fetch application config from Firestore
+ * @param {string} networkKey - "mainnet" or "testnet"
+ * @returns {Promise<Object>} - Resolves with the Firestore document data or null if not found
+ */
+export const fetchAppConfig = async (networkKey) => {
+  try {
+    const configRef = doc(db, "littlefinger-frontend-config", networkKey); // Reference the Firestore document
+    const docSnapshot = await getDoc(configRef); // Wait for the document to be retrieved
+    if (docSnapshot.exists()) {
+      console.log(`✅ Config for network ${networkKey}:`, docSnapshot.data());
+      return docSnapshot.data(); // Return the Firestore document's data
+    } else {
+      console.error(`❌ No config found for network: ${networkKey}`);
+      return null; // Return null if document does not exist
+    }
+  } catch (error) {
+    console.error(`❌ Error fetching Firestore config:`, error);
+    throw error; // Propagate the error so it can be caught by the calling function
+  }
+};

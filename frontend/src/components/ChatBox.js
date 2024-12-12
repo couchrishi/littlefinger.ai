@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react"; // 🛠️ Add useState
+
 import { parseUnits } from "ethers"; // Import parseUnits directly
 import { toBigInt } from "ethers"; // Import the BigInt utility
 
-import { listenForGlobalChat } from "../utils/firestoreUtils";
+import { listenForGlobalChat, fetchAppConfig } from "../utils/firestoreUtils";
 import { v4 as uuidv4 } from "uuid";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -51,7 +52,11 @@ export default function ChatBox() {
     "0x13882": "Polygon Amoy Testnet",
   };
 
-  const contractAddress = "0x25d876AD7Fd48FF35f654446AE8795b4eF6004A3";
+  const [contractAddress, setContractAddress] = useState(null); // 🛠️ Contract address loaded from Firestore
+  const [contractABI, setContractABI] = useState(null); 
+
+
+  //const contractAddress = "0x25d876AD7Fd48FF35f654446AE8795b4eF6004A3";
   const GAS_STATION_URL = currentChainId === "0x89"
     ? "https://gasstation.polygon.technology/v2"
     : "https://gasstation.polygon.technology/amoy";
@@ -81,6 +86,28 @@ export default function ChatBox() {
     }
 
     const networkKey = currentChainId === "0x89" ? "mainnet" : "testnet";
+
+    // 🔥 Fetch app config and extract the contract address
+    const fetchConfig = async () => {
+      try {
+        const configData = await fetchAppConfig(networkKey); // Call the utility function
+        if (configData && configData.contract.address && configData.abi_json.abi) {
+          console.log(configData.contract.address);
+          setContractAddress(configData.contract.address); // 🛠️ Store contract address in state
+          setContractABI(configData.abi_json.abi); // 🛠️ Store ABI
+          console.log("✅ Contract address loaded from Firestore:", configData.address);
+          console.log("✅ ABI loaded from Firestore:", configData.abi_json.abi);
+
+        } else {
+          console.error(`❌ No contract address or ABI found for network: ${networkKey}`);
+        }
+      } catch (error) {
+        console.error("Error fetching app config:", error);
+      }
+    };
+
+    fetchConfig(); // Call fetch on component mount
+
     const unsubscribe = listenForGlobalChat(networkKey, (messages) => {
       dispatch(setChatHistory(messages));
     });
@@ -126,12 +153,19 @@ export default function ChatBox() {
         try {
           const provider = new BrowserProvider(window.ethereum);
           const signer = await provider.getSigner();
-          const contract = new Contract(contractAddress, LittlefingerGameData.abi, signer);
-          console.log("ABI:", LittlefingerGameData.abi);
+
+          // 🛑 Check if contract address is loaded
+          if (!contractAddress) {
+            console.error("Contract address is not loaded yet.");
+            return;
+          }
+          
+          const contract = new Contract(contractAddress, contractABI, signer);
+          console.log("ABI:", contractABI);
 
           console.log("Contract instance methods:", contract.interface.functions);
           console.log("Contract address:", contractAddress);
-          console.log("Loaded ABI:", LittlefingerGameData.abi);
+          console.log("Loaded ABI:", contractABI);
 
 
 
@@ -202,6 +236,7 @@ export default function ChatBox() {
 
           const data = await response.json();
           console.log("AI response received:", data.response);
+          console.log("AI response type:", data.responseType);
 
           dispatch(updateMessageStatus({ index: messageIndex, status: "query_success" }));
           dispatch(querySuccess(data.response));
