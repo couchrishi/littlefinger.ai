@@ -15,11 +15,11 @@ function getNetworkDocument(chainId) {
 /**
  * Update global chat history in Firestore
  */
-async function updateGlobalHistory(network, sessionId, queryId, txId, userMessage, aiResponse, toolRequests) {
+
+const updateGlobalHistory = async (network, sessionId, queryId, txId, userMessage, clonedExtractedJson) => {
+  console.log("Inside firestore logic: ", clonedExtractedJson.nlr)
   const historyRef = firestore.collection("littlefinger-global").doc(network);
   const explanationsRef = firestore.collection('littlefinger-explanations').doc(network);
-
-  const toolInput = toolRequests.length > 0 ? toolRequests[0].toolRequest.input : {};
 
   const userMessageEntry = {
     network,
@@ -33,31 +33,77 @@ async function updateGlobalHistory(network, sessionId, queryId, txId, userMessag
   const aiResponseEntry = {
     network,
     sender: "Gemini",
-    text: aiResponse,
+    text: clonedExtractedJson?.nlr|| 'No response provided by Gemini.',
     timestamp: new Date().toISOString(),
     queryId,
     transactionId: txId,
   };
 
   const explanationData = {
-    queryID: queryId,
     queryText: userMessage,
-    toolSelected: toolRequests.length > 0 ? toolRequests[0].toolName : 'No Tool Selected',
-    explanation: toolInput.explanation || 'No explanation provided',
+    action: clonedExtractedJson?.fcr?.action || 'unknown',
+    explanation: clonedExtractedJson?.fcr?.explanation || 'No explanation provided',
   };
 
   await firestore.runTransaction(async (transaction) => {
     const historyDoc = await transaction.get(historyRef);
     const existingHistory = historyDoc.exists ? historyDoc.data().messages || [] : [];
+
+    // Update the user message and AI response in the global history
     existingHistory.push(userMessageEntry);
     existingHistory.push(aiResponseEntry);
     transaction.set(historyRef, { messages: existingHistory }, { merge: true });
 
+    // Update the explanations collection with the query information
     transaction.set(explanationsRef, { [queryId]: explanationData }, { merge: true });
 
     console.log(`📘 Explanation and history for queryID: ${queryId} successfully saved.`);
   });
 }
+
+// async function updateGlobalHistory(network, sessionId, queryId, txId, userMessage, aiResponse, toolRequests) {
+//   const historyRef = firestore.collection("littlefinger-global").doc(network);
+//   const explanationsRef = firestore.collection('littlefinger-explanations').doc(network);
+
+//   const toolInput = toolRequests.length > 0 ? toolRequests[0].toolRequest.input : {};
+
+//   const userMessageEntry = {
+//     network,
+//     sender: sessionId,
+//     text: userMessage,
+//     timestamp: new Date().toISOString(),
+//     queryId,
+//     transactionId: txId,
+//   };
+
+//   const aiResponseEntry = {
+//     network,
+//     sender: "Gemini",
+//     text: aiResponse,
+//     timestamp: new Date().toISOString(),
+//     queryId,
+//     transactionId: txId,
+//   };
+
+//   const explanationData = {
+//     queryID: queryId,
+//     queryText: userMessage,
+//     toolSelected: toolRequests.length > 0 ? toolRequests[0].toolName : 'No Tool Selected',
+//     explanation: toolInput.explanation || 'No explanation provided',
+//   };
+
+//   await firestore.runTransaction(async (transaction) => {
+//     const historyDoc = await transaction.get(historyRef);
+//     const existingHistory = historyDoc.exists ? historyDoc.data().messages || [] : [];
+//     existingHistory.push(userMessageEntry);
+//     existingHistory.push(aiResponseEntry);
+//     transaction.set(historyRef, { messages: existingHistory }, { merge: true });
+
+//     transaction.set(explanationsRef, { [queryId]: explanationData }, { merge: true });
+
+//     console.log(`📘 Explanation and history for queryID: ${queryId} successfully saved.`);
+//   });
+// }
 
 /**
  * Update Firestore stats
@@ -165,6 +211,7 @@ async function updateQueryStatusAfterAIResponse(network, queryId, userWalletAddr
     console.error(`❌ Error updating AI response status for queryID: ${queryId}`, error);
   }
 }
+
 
 module.exports = {
   getNetworkDocument,

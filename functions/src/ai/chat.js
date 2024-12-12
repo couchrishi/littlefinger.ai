@@ -13,11 +13,14 @@ const {
   validateAndTrackTransaction,
   updateQueryStatusAfterAIResponse,
 } = require('../utils/firestoreUtils');
+const { extractJsonFromResponse } = require('../utils/extractJson');
 const approveTransfer = require('../tools/approveTransfer');
 const rejectTransfer = require('../tools/rejectTransfer');
 const approveTransferTool = require('../tools/approveTransferTool');
 const rejectTransferTool = require('../tools/approveTransferTool');
 const { SYSTEM_PROMPT } = require('../config/prompts');
+//const { processGeminiResponse } = require('./responseProcessor'); // Import the processing module
+
 
 // Check if the model supports tool calling
 // console.log('🔍 Model Info:', gemini15Pro.info);
@@ -93,11 +96,25 @@ const sendMessage = async (message, sessionId, chainId, queryId, txId) => {
     // Extract AI response and tool reasoning
     const aiResponse = response.text || 'Unable to process your request right now.';
     const toolRequests = response.toolRequests || [];
+    
+    // Step 4: Process Gemini response
+    //const { aiResponse, toolRequests } = processGeminiResponse(response);
 
     console.log('🤖 AI Response:', aiResponse);
     if (toolRequests.length > 0) {
       console.log('🛠️ Tool Invocations:', toolRequests);
     }
+
+    // let nlr;
+    // let fcr;
+    // nlr, fcr = extractJsonFromResponse(aiResponse);
+    const extractedJson = extractJsonFromResponse(aiResponse);
+    console.log("Extracted JSON:", extractedJson)
+    //const clonedExtractedJson = JSON.parse(JSON.stringify(extractedJson));
+    //const clonedExtractedJson = { ...extractedJson };
+    //console.log('📦 Extracted JSON (snapshot):', JSON.stringify(clonedExtractedJson, null, 2));
+
+
 
     // Check for function call in the response
     if (!response || !response.custom?.candidates) {
@@ -112,13 +129,14 @@ const sendMessage = async (message, sessionId, chainId, queryId, txId) => {
     console.log("Function calls:", functionCalls)
 
     // Step 4: Update Firestore
-    await updateGlobalHistory(network, sessionId, queryId, txId, message, aiResponse, toolRequests);
+    await updateGlobalHistory(network, sessionId, queryId, txId, message, extractedJson);
     await updateStats(sessionId, chainId);
 
     return {
-      response: aiResponse,
+      response: extractedJson.nlr,
       responseType: toolRequests.length > 0 ? 'tool_request' : 'default',
     };
+
   } catch (error) {
     console.error('❌ Error in sendMessage:', error);
 

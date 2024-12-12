@@ -11,6 +11,7 @@ let webSocketProvider;
 let contract; // ✅ Global variable for contract instance
 let rpcProvider;
 const PING_INTERVAL_MS = 60000;
+let pingInterval;
 
 // 📢 Firestore listener reference
 let firestoreUnsubscribe = null;
@@ -32,7 +33,8 @@ function listenToFirestoreForContractChanges(network) {
     //const { contract: contract, abi: abi } = doc.data();
     newContractAddress = doc.data().contract.address;
     newAbi= doc.data().abi_json.abi;
-    console.log('🛠️ Contract changes detected:', { "newContract": newContractAddress, "newAbi": newAbi });
+    //console.log('🛠️ Contract changes detected:', { "newContract": newContractAddress, "newAbi": newAbi });
+    console.log('🛠️ Contract changes detected:', { "newContract": newContractAddress });
 
 
     // Re-initialize the contract listeners with new contract data
@@ -60,12 +62,48 @@ async function listenForPlayerActionEvents(network) {
     if (!webSocketProvider) {
       console.log('🌐 Initializing new WebSocket Provider...');
       webSocketProvider = new WebSocketProvider(cleanedWSS_URL);
-      webSocketProvider.on('network', handleNetworkChange);
-      webSocketProvider.on('error', handleWebSocketError);
-    } else {
-      console.log('🌐 Reusing existing WebSocket Provider.');
+    
+      // Attach network change event handlers
+      webSocketProvider.on('network', (newNetwork, oldNetwork) => {
+        console.log(`🔄 Network changed from ${oldNetwork?.chainId} to ${newNetwork.chainId}`);
+        // If network changes, we should restart as this is equivalent to a "disconnect"
+        if (oldNetwork?.chainId !== newNetwork.chainId) {
+          console.warn('🌐 Network change detected, scheduling restart...');
+          scheduleRestart(network);
+        }
+      });
+    
+      // Attach error event handlers (acts as a "disconnect" listener)
+      webSocketProvider.on('error', (error) => {
+        console.error('⚠️ WebSocket error detected:', error.message);
+        scheduleRestart(network); // Restart WebSocket on error
+      });
+    
+      // Use getNetwork() to confirm readiness
+      try {
+        await webSocketProvider.getNetwork(); // ✅ Wait for provider to be fully ready
+        console.log('✅ WebSocket connected!');
+    
+        // Keep-alive logic: Call eth_chainId as a ping every 60 seconds
+        clearInterval(pingInterval); // Clear any existing ping
+        pingInterval = setInterval(async () => {
+          try {
+            console.log('📡 Sending keep-alive ping (eth_chainId) to WebSocket...');
+            const chainId = await webSocketProvider.send('eth_chainId', []);
+            console.log(`📡 Keep-alive response received: chainId = ${chainId}`);
+          } catch (error) {
+            console.error('❌ Error during keep-alive ping:', error.message);
+            scheduleRestart(network); // Restart if keep-alive ping fails
+          }
+        }, PING_INTERVAL_MS);
+      } catch (error) {
+        console.error('❌ Error while waiting for webSocketProvider to be ready:', error.message);
+        scheduleRestart(network);
+      }
     }
-
+    
+    
+    
     await webSocketProvider.ready;
     console.log('✅ WebSocket connected!');
     
@@ -89,7 +127,8 @@ async function listenForPlayerActionEvents(network) {
       // ✅ Step 3: Extract and set the ABI
       const abi = abiData.abi_json.abi; // Ensure this is an array (required for Ethers.js Contract)
 
-      console.log(`✅ ABI loaded for network ${network}:`, abi);
+      console.log(`✅ ABI loaded for network ${network}:`);
+
       
       // 🔥 Step 4: Initialize the Contract with ABI, Contract Address, and Provider
       contract = new Contract(cleanedContractAddress, abi, webSocketProvider);
