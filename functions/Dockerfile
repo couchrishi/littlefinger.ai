@@ -1,7 +1,7 @@
 # Base image with Node.js 18
 FROM node:18
 
-# Set the working directory
+# Set the working directory. 
 WORKDIR /usr/src/app
 
 # Copy package files and install dependencies
