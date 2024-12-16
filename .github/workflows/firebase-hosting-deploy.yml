@@ -3,7 +3,9 @@ name: Deploy to Firebase Hosting
 on:
   push:
     branches:
-      - main # Change this to your branch name if it's not 'main'
+      - main # Change this if you want to deploy from a different branch
+    paths:
+        - 'frontend/**'
 
 jobs:
   build:
