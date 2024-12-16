@@ -474,12 +474,12 @@ export default function ChatBox() {
           }
 
           return (
-           <div key={index} className={`mb-4 flex ${alignmentClass} items-center gap-2`}>
+           <div key={index} className={`mb-4 flex ${alignmentClass} items-start gap-2`}>
            {/* <div key={index} className={`mb-6 flex ${isAI ? "justify-start" : "justify-end"} items-start`}> */}
               <div className="w-8 h-8 rounded-full cursor-pointer flex-shrink-0" style={{ backgroundColor: profileColor }}></div>
               <div>
                 {/* <span className={`inline-block px-2 py-1 rounded-lg ${messageStyle}`}>{msg.text || "No response"}</span> */}
-                <span className={`inline-block px-2 py-1 rounded-lg text-gray-800 ${messageStyle}`}>{messageText|| "No response"}
+                <span className={`inline-block px-2 py-1 rounded-lg text-gray-800 ${isAI ? "text-left" : "text-left"} ${messageStyle}`}>{messageText|| "No response"}
 
                 </span>
                 <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">

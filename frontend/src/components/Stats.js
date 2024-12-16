@@ -31,7 +31,7 @@ export default function Stats() {
   return (
     // <div className="bg-dark-secondary mt-5 text-neon-green border border-neon-green shadow-md rounded-lg p-4 flex flex-col items-start gap-4">
     
-    <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md flex flex-col items-start gap-4">
+    <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md flex flex-col items-start gap-2">
     <h3 className="text-purple-500 text-2xl font-bold text-center w-full">Game Stats</h3>
       <div className="flex flex-col gap-3 w-full">
         {/* Total Participants */}

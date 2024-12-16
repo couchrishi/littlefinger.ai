@@ -14,7 +14,7 @@ export default function Playbook() {
     // <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md border border-neon-green">
     <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md">
       {/* Title */}
-      <h3 className="text-center text-purple-500 text-2xl font-extrabold mb-3 tracking-wider">
+      <h3 className="text-center text-purple-500 text-2xl font-extrabold mb-1.5 tracking-wider">
          Playbook
       </h3>
 

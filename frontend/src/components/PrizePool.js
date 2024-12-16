@@ -7,15 +7,15 @@ export default function PrizePool() {
 
   return (
     // <div className="relative bg-gradient-to-br from-purple-900 via-black to-purple-900 p-6 rounded-lg shadow-md border border-neon-green">
-    // <div className="relative bg-gradient-to-br from-purple-900 via-black to-purple-900 p-6 rounded-lg shadow-md"> //Intersting theme
-     <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md"> 
+    <div className="relative bg-gradient-to-br from-purple-900 via-black to-purple-900 p-4 rounded-lg shadow-md">
+   {/* <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md"> */}
 
       <h2 className="text-2xl font-extrabold text-purple-500 mb-2 text-center tracking-wider">
         Prize Pool
       </h2>
 
       <div className="flex flex-col items-center justify-center">
-        <p className="text-4xl font-extrabold text-green-400 animate-pulse">
+        <p className="text-3xl font-extrabold text-green-400 animate-pulse">
           {prizePool ? prizePool : '0.00'} POL
         </p>
         <p className="text-2xl font-extrabold text-yellow-400">
