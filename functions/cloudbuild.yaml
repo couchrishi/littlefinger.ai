@@ -1,3 +1,4 @@
+# cloudbuild.yaml
 options:
   logging: "CLOUD_LOGGING_ONLY"
 
@@ -9,7 +10,8 @@ steps:
       'build', 
       '-t', 
       'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest', 
-      '.'
+      '-f', 'functions/Dockerfile',  # Path to the Dockerfile
+      'functions'  # Build context where source files are
     ]
 
   # Step 2: Push the Docker image to Google Artifact Registry
