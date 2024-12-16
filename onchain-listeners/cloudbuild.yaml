@@ -63,7 +63,7 @@ steps:
 substitutions:
   _PROJECT_ID: "$PROJECT_ID"
   _SERVICE_NAME: "onchain-listeners"
-  _REPO_NAME: "onchain-listeners-repo"
+  _REPO_NAME: "littlefinger-listeners-repo"
   _VM_NAME_1: "littlefinger-onchain-listeners-us-1"
   _VM_NAME_2: "littlefinger-onchain-listeners-asia-2"
   _ZONE_1: "us-central1-a"
