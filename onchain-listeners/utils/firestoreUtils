@@ -1,0 +1,366 @@
+const { firestore } = require('../config/firebase');
+const { FieldValue, Timestamp } = require('@google-cloud/firestore');
+
+
+const { getFirestorePaths } = require('../config/firestorePaths');
+const { getNetworkSecrets } = require("./secrets");
+
+const ethers = require('ethers');
+
+
+/**
+ * Helper function for exponential backoff retry logic.
+ * @param {Function} fn - The function to retry.
+ * @param {number} retries - Number of retry attempts.
+ * @param {number} delay - Delay in ms between retries.
+ */
+async function retryWithBackoff(fn, retries = 3, delay = 1000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      console.warn(`[firestoreUtils] Retry attempt ${attempt} failed:`, error.message);
+      if (attempt < retries) {
+        await new Promise((res) => setTimeout(res, delay * 2 ** (attempt - 1))); // Exponential backoff
+      } else {
+        console.error(`[firestoreUtils] ❌ All retries failed.`, error.stack);
+        throw error; // Rethrow the error
+      }
+    }
+  }
+}
+
+
+/**
+ * 🔥 Fetch the contract address and ABI from Firestore.
+ * 
+ * @param {string} network - The network (e.g., 'testnet' or 'mainnet')
+ * @returns {Promise<{ contractAddress: string, abi: Array }>} - Returns the contract address and ABI
+ */
+async function getContractInfoFromFirestore(network) {
+  try {
+    console.log(`[firestoreUtils] 🔍 Fetching contract info for network: ${network}`);
+    
+    // 🔥 Get the Firestore paths for the given network
+    const paths = await getFirestorePaths(network);
+    const collectionPath = paths.FRONTEND_CONFIG; 
+
+    if (!collectionPath) {
+      throw new Error(`[firestoreUtils] ❌ Missing collection path for FRONTEND_CONFIG for network: ${network}`);
+    }
+
+    console.log(`[firestoreUtils] 🔍 Looking for document at path: ${collectionPath}/${network}`);
+
+    const docRef = firestore.collection(collectionPath).doc(network);
+    const docSnapshot = await docRef.get();
+
+    if (!docSnapshot.exists) {
+      throw new Error(`[firestoreUtils] ⚠️ Firestore document not found at path: ${collectionPath}/${network}`);
+    }
+
+    const docData = docSnapshot.data();
+
+    const contractAddress = docData?.contract;
+    const abi = docData?.abi_json?.abi;
+
+    if (!contractAddress || !abi) {
+      throw new Error(`[firestoreUtils] ⚠️ Missing contract address or ABI in Firestore document for network: ${network}`);
+    }
+
+    console.log(`[firestoreUtils] ✅ Successfully retrieved contract info for network: ${network}`);
+    return { contractAddress, abi };
+  } catch (error) {
+    console.error(`[firestoreUtils] ❌ Error fetching contract info for network: ${network}`, error);
+    throw error; // Bubble the error up
+  }
+}
+
+
+/**
+ * Listen for Firestore changes for a specific document.
+ * 
+ * @param {string} collectionName - The key of the collection from getFirestorePaths (e.g., 'FRONTEND_CONFIG')
+ * @param {string} docId - The ID of the document within the collection
+ * @param {function} callback - The function to call when the document changes
+ * @param {string} network - The network (e.g., 'testnet' or 'mainnet')
+ * @returns {function} unsubscribe - A function to stop listening for document changes
+ */
+
+const activeListeners = new Map();
+
+async function listenToFirestoreDocumentChanges(network, callback) {
+  try {
+    // 🔥 Check if a listener already exists
+    if (activeListeners.has(network)) {
+      console.warn(`[firestoreUtils] ⚠️ Firestore listener for network '${network}' is already active.`);
+      return activeListeners.get(network); // Return the existing listener
+    }
+
+    const paths = await getFirestorePaths(network);
+    const collectionPath = paths.FRONTEND_CONFIG; // Extract FRONTEND_CONFIG path
+    if (!collectionPath) {
+      throw new Error(`[firestoreUtils] ❌ FRONTEND_CONFIG path is missing for network: ${network}`);
+    }
+
+    console.log(`[firestoreUtils] 👂 Setting up Firestore listener at ${collectionPath}/${network}`);
+
+    const docRef = firestore.collection(collectionPath).doc(network); // Use network as the document ID
+
+    let debounceTimeout; // For debouncing rapid changes
+    const unsubscribe = docRef.onSnapshot(
+      (doc) => {
+        if (!doc.exists) {
+          console.warn(`[firestoreUtils] ⚠️ No document found at ${collectionPath}/${network}`);
+          callback({}); // Pass an empty object
+          return;
+        }
+
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+          console.log(`[firestoreUtils] 🔥 Detected Config change for network: ${network}`);
+          callback(doc.data());
+        }, 300); // Debounce period (300ms)
+      },
+      (error) => {
+        console.error('[firestoreUtils] ❌ Firestore listener error:', error);
+        activeListeners.delete(network); // Remove the listener from the map if it fails
+      }
+    );
+
+    // 🛠️ Track the listener to avoid duplicates
+    activeListeners.set(network, unsubscribe);
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('[firestoreUtils] ❌ Error setting up Firestore listener:', error);
+    throw error; // Re-throw the error for better error handling
+  }
+}
+
+/**
+ * 🔥 Utility to clean up active Firestore listeners
+ * @param {string} network - The network whose listener should be removed
+ */
+function removeFirestoreListener(network) {
+  if (activeListeners.has(network)) {
+    console.log(`[firestoreUtils] 🛑 Removing Firestore listener for network: ${network}`);
+    const unsubscribe = activeListeners.get(network);
+    unsubscribe(); // Unsubscribe the listener
+    activeListeners.delete(network); // Remove it from the activeListeners map
+  } else {
+    console.warn(`[firestoreUtils] ⚠️ No active listener found for network: ${network}`);
+  }
+}
+
+/**
+ * Update Firestore stats with specific data.
+ * 
+ * @param {string} network 
+ * @param {string} field 
+ * @param {any} value 
+ */
+async function updateStats(network, field, value) {
+  const paths = await getFirestorePaths(network);
+  const statsPath = `${paths.STATS}/${network}`;
+  const statsRef = firestore.doc(statsPath);
+  
+  await retryWithBackoff(async () => {
+    await firestore.runTransaction(async (transaction) => {
+      transaction.set(statsRef, { [field]: value, lastModifiedAt: new Date().toISOString() }, { merge: true });
+    });
+  });
+
+  console.log(`[firestoreUtils] 📊 Firestore updated: ${field} = ${value} for path: ${statsPath}`);
+}
+
+/**
+ * Update the transaction status for a specific queryID.
+ * 
+ * @param {string} network 
+ * @param {string} queryID 
+ * @param {string} transactionHash 
+ * @param {string} status 
+ */
+
+const activeTrackers = new Map(); // Shared tracker for all files
+
+async function updateTransactionStatus(network, queryID, transactionHash, status) {
+  const paths = await getFirestorePaths(network);
+  const transactionsPath = `${paths.TRANSACTIONS}/${network}`;
+  const transactionRef = firestore.doc(transactionsPath);
+
+  await firestore.runTransaction(async (transaction) => {
+    const docSnapshot = await transaction.get(transactionRef);
+    const existingStatus = docSnapshot?.data()?.[queryID]?.transactionReceiptStatus;
+
+    if (existingStatus === status === "success") {
+      console.log(`⚠️ Transaction status is already '${status}', skipping update.`);
+      return; 
+    }
+
+    transaction.set(transactionRef, {
+      [queryID]: {
+        transactionHash: transactionHash,
+        transactionReceiptStatus: status,
+        lastModifiedAt: new Date().toISOString()
+      }
+    }, { merge: true });
+  });
+
+  console.log(`[firestoreUtils] ✅ Updated transaction for queryID: ${queryID} with status: ${status} at path: ${transactionsPath}`);
+
+  // if (status === "success" || status === "failure") {
+  //   console.log(`⚠️ Skipping trackTransaction as status is already final'${status}' for TX: ${transactionHash}`);
+  //   return;
+  // }
+
+  // 🛑 Avoid re-tracking if transaction is already being tracked
+  const trackerInfo = activeTrackers.get(transactionHash);
+  if (trackerInfo && trackerInfo.isFinalized) {
+    console.log(`⚠️ Skipping trackTransaction as transaction is finalized for TX: ${transactionHash}`);
+    return;
+  }
+  const { RPC_URL } = await getNetworkSecrets(network);
+  const cleanedRPC_URL = RPC_URL.trim();
+  await trackTransaction(network, queryID, transactionHash, cleanedRPC_URL);
+}
+
+
+async function trackTransaction(network, queryID, transactionHash, RPC_URL) {
+  console.log(`[transactionUtils] 🚀 Tracking transaction: ${transactionHash} for queryID: ${queryID}`);
+
+  // 🛑 Check if this transaction is already being tracked
+  if (activeTrackers.has(transactionHash)) {
+    console.log(`⚠️ Transaction ${transactionHash} is already being tracked. Skipping.`);
+    return;
+  }
+
+  // 🚀 Mark the transaction as "being tracked"
+  activeTrackers.set(transactionHash, { isFinalized: false });
+
+  let isComplete = false;
+
+  // 🚀 Initialize provider for RPC
+  let rpcProvider = new ethers.JsonRpcProvider(RPC_URL); 
+  console.log("[transactionUtils] 🌐 RPC Provider initialized.");
+
+  // 🧑‍🚀 Listen for a one-time event when the transaction is confirmed on-chain
+  rpcProvider.once(transactionHash, async (receipt) => {
+    if (isComplete) return; 
+    isComplete = true;
+
+    const txReceiptStatus = receipt.status === 1 ? "success" : "failure";
+    console.log(`[transactionUtils] 📡 WebSocket confirmation received for TX: ${transactionHash}`);
+    console.log(`[transactionUtils] 🔄 Receipt Status: ${txReceiptStatus}`);
+
+    // 🚀 Update Firestore with the final transaction status
+    await updateTransactionStatus(network, queryID, transactionHash, txReceiptStatus);
+
+    // 🚀 Mark transaction as finalized
+    activeTrackers.set(transactionHash, { isFinalized: true });
+  });
+
+  // 🕒 Polling fallback (in case the event listener doesn't fire)
+  let attempts = 0;
+  const maxAttempts = 10; 
+  const pollingInterval = 10000; 
+
+  const intervalId = setInterval(async () => {
+    if (isComplete) {
+      clearInterval(intervalId); 
+      return;
+    }
+
+    try {
+      attempts++;
+      console.log(`[transactionUtils] 🕒 Polling attempt #${attempts} for TX: ${transactionHash}`);
+      
+      const receipt = await rpcProvider.getTransactionReceipt(transactionHash);
+
+      if (receipt) {
+        isComplete = true; 
+        const txReceiptStatus = receipt.status === 1 ? "success" : "failure";
+        console.log(`[transactionUtils] 📋 Polling confirmation received for TX: ${transactionHash}`);
+        console.log(`[transactionUtils] 🔄 Receipt Status: ${txReceiptStatus}`);
+
+        // 🚀 Update Firestore with the final transaction status
+        await updateTransactionStatus(network, queryID, transactionHash, txReceiptStatus);
+
+        // 🚀 Mark transaction as finalized
+        activeTrackers.set(transactionHash, { isFinalized: true });
+
+        clearInterval(intervalId); 
+      } else if (attempts >= maxAttempts) {
+        console.warn(`[transactionUtils] ⚠️ Max polling attempts reached for TX: ${transactionHash}`);
+        clearInterval(intervalId); 
+      }
+    } catch (error) {
+      console.error(`[transactionUtils] ❌ Error while polling for TX: ${transactionHash}`, error);
+    }
+  }, pollingInterval);
+}
+
+/**
+ * 🔥 Update Game Lifecycle Information in Firestore.
+ * 
+ * @param {string} network - The network (e.g., 'testnet' or 'mainnet')
+ * @param {string} gameID - The ID of the game (usually the contract address)
+ * @param {object} gameStatus - The game status object containing status, startedAt, and idleSince
+ */
+/**
+ * 🔥 Update Game Lifecycle Information in Firestore.
+ * 
+ * Firestore path: 
+ * /littlefinger-game-lifecycle/{network}/games/{gameID}
+ * 
+ * @param {string} network - The network (e.g., 'testnet' or 'mainnet')
+ * @param {string} gameID - The ID of the game (usually the contract address)
+ * @param {object} gameStatus - The game status object containing status, startedAt, and idleSince
+ */
+async function updateGameLifecycleInfo(network, gameID, gameStatus) {
+  try {
+    console.log(`[updateGameLifecycleInfo] 🔥 Updating lifecycle info for network: ${network}, gameID: ${gameID}`);
+
+    // 🔥 Firestore path: /littlefinger-game-lifecycle/{network}/games/{gameID}
+    const lifecyclePath = `littlefinger-game-lifecycle/${network}/games/${gameID}`;
+    const lifecycleRef = firestore.doc(lifecyclePath);
+
+    // 🔥 Use a transaction to update the game document
+    await firestore.runTransaction(async (transaction) => {
+      const docSnapshot = await transaction.get(lifecycleRef);
+      const existingData = docSnapshot.exists ? docSnapshot.data() : {};
+
+      if (existingData) {
+        console.log(`[updateGameLifecycleInfo] ⚠️ Existing data found for gameID: ${gameID} at path: ${lifecyclePath}`);
+      } else {
+        console.log(`[updateGameLifecycleInfo] 📄 No existing document found for gameID: ${gameID} at path: ${lifecyclePath}`);
+      }
+
+      // 🔥 Prepare the new game lifecycle data
+      const newData = {
+        gameID: gameID,
+        gameStatus: {
+          status: gameStatus.status,
+          startedAt: Timestamp.fromMillis(Number(gameStatus.startedAt) * 1000),
+          idleSince: Timestamp.fromMillis(Number(gameStatus.idleSince) * 1000),
+        }
+      };
+
+      // 🔥 Set the new game status for the gameID document
+      transaction.set(lifecycleRef, newData, { merge: true });
+      console.log(`[updateGameLifecycleInfo] ✅ Updated lifecycle info for gameID: ${gameID} at path: ${lifecyclePath}`);
+    });
+
+  } catch (error) {
+    console.error(`[updateGameLifecycleInfo] ❌ Error updating game lifecycle info for network: ${network}, gameID: ${gameID}`, error);
+    throw error; // Re-throw the error for better error handling
+  }
+}
+
+module.exports = {
+  getContractInfoFromFirestore,
+  listenToFirestoreDocumentChanges,
+  updateStats,
+  updateTransactionStatus,
+  updateGameLifecycleInfo,
+};

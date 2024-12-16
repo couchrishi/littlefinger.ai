@@ -1,15 +1,60 @@
 {
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
+  "hosting": {
+    "public": "frontend/build",
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          },
+          {
+            "key": "Access-Control-Allow-Methods",
+            "value": "GET, POST, OPTIONS"
+          },
+          {
+            "key": "Access-Control-Allow-Headers",
+            "value": "Content-Type"
+          }
+        ]
+      }
+    ], 
+    "rewrites": [
+      {
+        "source": "/chatWithAI",
+        "function": "chatWithAI"
+        }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs18",
+    "serviceAccount": "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com",
+    "predeploy": [
+      "npm install --legacy-peer-deps"
+    ]
+  },
+  "emulators": {
+    "hosting": {
+      "port": 5000
+    },  
+    "functions": {
+      "port": 5001
+    },
+    "extensions": {
+      "port": 5002
+    },
+    "logging": {
+      "port": 4500
     }
-  ]
+  }
 }
+
+
+
+
+
+
+
+

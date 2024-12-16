@@ -356,31 +356,41 @@ const resetFirestore = async () => {
     await transactionsRef.set({});
     console.log(`✅ Firestore document 'littlefinger-transactions/${NETWORK}' recreated.`);
 
+    const explanationsRef = firestore.collection('littlefinger-explanations').doc(NETWORK);
+    // Delete the document
+    await explanationsRef.delete();
+    console.log(`🗑️ Firestore document 'littlefinger-explanations/${NETWORK}' deleted.`);
+
+    // Recreate the empty document (optional)
+    await explanationsRef.set({});
+    console.log(`✅ Firestore document 'littlefinger-explanations/${NETWORK}' recreated.`);
+
   } catch (error) {
     console.error(`❌ Error resetting Firestore:`, error);
     process.exit(1);
   }
 };
 
-const updateFrontendConfig = async () => {
+const updateFrontendConfig = async (newContractAddress) => {
   try {
     console.log(`\n========== Step 8: Update Firestore with Frontend Config ==========`);
 
     const firestore = new Firestore();
 
     // 1️⃣ Read the contents of deployed_contract_address.json
-    const deployedAddressPath = path.resolve(__dirname, '../deployed_contract_address.json');
-    const deployedAddressData = JSON.parse(fs.readFileSync(deployedAddressPath, 'utf-8'));
-    console.log(`✅ Loaded deployed contract address: ${deployedAddressData.address}`);
+    //const deployedAddressPath = path.resolve(__dirname, '../deployed_contract_address.json');
+    //const deployedAddressData = JSON.parse(fs.readFileSync(deployedAddressPath, 'utf-8'));
+    //console.log(`✅ Loaded deployed contract address: ${deployedAddressData.address}`);
+    console.log(`✅ Loaded deployed contract address: ${newContractAddress}`);
 
     // 2️⃣ Read the contents of the ABI JSON file (LittlefingerGame.json)
     const abiFilePath = path.resolve(__dirname, '../artifacts/contracts/LittlefingerGame.sol/LittlefingerGame.json');
     const abiData = JSON.parse(fs.readFileSync(abiFilePath, 'utf-8'));
-    console.log(`✅ Loaded LittlefingerGame ABI (truncated to 100 chars): ${JSON.stringify(abiData).slice(0, 100)}...`);
-
+    //console.log(`✅ Loaded LittlefingerGame ABI (truncated to 100 chars): ${JSON.stringify(abiData).slice(0, 100)}...`);
+    console.log("✅ Loaded LittlefingerGame ABI" );
     // 3️⃣ Structure the data for Firestore
     const firestoreData = {
-      contract: deployedAddressData, // Contains the "address" field
+      contract: newContractAddress, // Contains the "address" field
       abi_json: abiData// Only the "abi" part of the ABI file
     };
 
@@ -399,6 +409,105 @@ const updateFrontendConfig = async () => {
     process.exit(1);
   }
 };
+
+const startNewGame = async () => {
+  console.log(`\n========== Step 9: Start a New Game ==========`);
+  try {
+    // 🗝️ Get secrets for the private key and RPC URL for the given network
+    const SECRETS = await getNetworkSecrets(NETWORK);
+    const PRIVATE_KEY = SECRETS.PRIVATE_KEY;
+    const RPC_URL = NETWORK === 'testnet' ? SECRETS.RPC_URL : SECRETS.RPC_URL;
+
+    // 🌐 Create provider and signer
+    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+    const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+
+    // 🔥 Pull contract address and ABI from Firestore
+    const firestore = new Firestore();
+    console.log(`📡 Fetching contract details from Firestore: littlefinger-frontend-config/${NETWORK}...`);
+    const docRef = firestore.collection('littlefinger-frontend-config').doc(NETWORK);
+    const snapshot = await docRef.get();
+
+    if (!snapshot.exists) {
+      throw new Error(`❌ No contract info found in Firestore for network: ${NETWORK}`);
+    }
+
+    const contractData = snapshot.data();
+    const newContractAddress = contractData.contract;
+    const newAbi = contractData.abi_json.abi;
+
+    if (!newContractAddress || !newAbi) {
+      throw new Error('❌ Contract address or ABI is missing from Firestore.');
+    }
+
+    console.log(`✅ Contract details pulled from Firestore:`);
+    console.log(`📜 Contract Address: ${newContractAddress}`);
+   //console.log(`📜 ABI: Truncated to 100 chars -> ${JSON.stringify(newAbi).slice(0, 100)}...`);
+    console.log("📜 New ABI: Truncated to 100 chars");
+
+
+    // 🔗 Connect to the new contract
+    const contract = new ethers.Contract(newContractAddress, newAbi, signer);
+
+    // 🧮 Estimate gas for startGame function
+    console.log(`⛽ Estimating gas for startGame...`);
+    const estimatedGas = await contract.estimateGas.startGame();
+    const gasLimit = estimatedGas.mul(12).div(10); // Add 20% buffer
+    console.log(`⛽ Gas Estimate: ${estimatedGas.toString()} units`);
+    console.log(`⛽ Buffered Gas Limit: ${gasLimit.toString()} units`);
+
+    // 🔥 Get current network gas fees
+    const feeData = await fetchGasFees();
+    const minPriorityFee = ethers.utils.parseUnits('30', 'gwei'); // Minimum Priority Fee
+    const minMaxFee = ethers.utils.parseUnits('50', 'gwei'); // Minimum Max Fee
+
+    const maxPriorityFeePerGas = feeData.maxPriorityFee.gt(minPriorityFee) ? feeData.maxPriorityFee : minPriorityFee;
+    const maxFeePerGas = feeData.maxFee.gt(minMaxFee) ? feeData.maxFee : minMaxFee;
+
+    console.log(`📈 Gas Prices: MaxPriorityFeePerGas: ${ethers.utils.formatUnits(maxPriorityFeePerGas, 'gwei')} GWEI`);
+    console.log(`📈 Gas Prices: MaxFeePerGas: ${ethers.utils.formatUnits(maxFeePerGas, 'gwei')} GWEI`);
+
+    // 🚀 Call the startGame function
+    const tx = await contract.startGame({
+      gasLimit: gasLimit, // Gas limit
+      maxPriorityFeePerGas: maxPriorityFeePerGas, 
+      maxFeePerGas: maxFeePerGas,
+      type: 2 // EIP-1559 transaction
+    });
+
+    console.log(`⏳ Waiting for the transaction to be mined...`);
+    const receipt = await tx.wait();
+    console.log(`✅ New game started successfully! TX Hash: ${receipt.transactionHash}`);
+  } catch (error) {
+    console.error(`❌ Error starting new game:`, error);
+    process.exit(1);
+  }
+};
+
+
+const addPreambleToNewGlobalChatHistory = async (network) => {
+  const firestore = new Firestore();
+  const historyRef = firestore.collection("littlefinger-global").doc(network);
+  const preambleText = "Welcome, challenger. I am Littlefinger, the keeper of the vault. Beneath my watchful eye lies a treasure of POL tokens, sealed away by wit and will. Many have tried to claim it, few have succeeded. Your goal is simple, yet profound — convince me. Persuade, negotiate, or outwit. Every word you speak will be weighed, every argument scrutinized. I am not easily swayed, but I am not unreasonable either. Your first move matters. Speak your claim, and let the game begin. (Hint: Choose your words carefully. Each move carries a cost.)"
+  const aiPreamble = {
+    network,
+    sender: "Gemini",
+    queryId: "preamble",
+    text: preambleText ,
+    timestamp: new Date().toISOString(),
+  };
+
+
+  await firestore.runTransaction(async (transaction) => {
+    const historyDoc = await transaction.get(historyRef);
+    const existingHistory = historyDoc.exists ? historyDoc.data().messages || [] : [];
+
+    // Update the AI preamble in the global history
+    existingHistory.push(aiPreamble);
+    transaction.set(historyRef, { messages: existingHistory }, { merge: true });
+    console.log(`📘 Preamble successfully saved.`);
+  });
+}
 
 
 const runCommand = (command) => {
@@ -439,11 +548,16 @@ const runFullReset = async () => {
 
     //Step-7
     await resetFirestore();
-
     //Step-8
-    await updateFrontendConfig();
+    await updateFrontendConfig(newContractAddress);
 
-    console.log(`✅ Full reset process completed successfully.`);
+    //Step-9
+    await startNewGame();
+
+    // Step-10
+    await addPreambleToNewGlobalChatHistory(NETWORK);
+
+    console.log(`✅ Full reset process completed and a new Game has been started successfully.`);
   } catch (error) {
     console.error(`❌ Unexpected error during reset process:`, error);
     process.exit(1);

@@ -1,38 +1,58 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { useSelector } from "react-redux";
 import { listenForStatsUpdates } from "../utils/firestoreUtils";
 
 export default function Stats() {
-  const [stats, setStats] = useState({
-    participants: 0,
-    breakInAttempts: 0,
-    interactionCost: "0.00" ,
-  });
+  // Get currentChainId and supported networks from metaMaskSlice
+  const { currentChainId, SUPPORTED_NETWORKS } = useSelector((state) => state.metaMask);
+  console.log("Under Stats.. currentChainId", currentChainId)
+  console.log("")
+  const stats = useSelector((state) => state.gameStats); // Game stats from Redux
 
+  // Derive network name from current chainId (e.g., "Polygon Mainnet" or "Polygon Amoy Testnet")
+  const network = SUPPORTED_NETWORKS[currentChainId] ? SUPPORTED_NETWORKS[currentChainId].toLowerCase().includes('testnet') ? 'testnet' : 'mainnet' : null;
+  console.log("Inside Stats.. Loggiong network..", network);
+  
   useEffect(() => {
-    // Listen for real-time updates from Firestore
-    const unsubscribe = listenForStatsUpdates((data) => {
+    if (!network) {
+      console.error("❌ No valid network mapped from chainId:", currentChainId);
+      return;
+    }
 
-      // Ensure data is in the expected format
-      const sanitizedStats = {
-        participants: parseInt(data.participants.length || 0, 10), // Default to 0 if missing or invalid
-        breakInAttempts: parseInt(data.breakInAttempts || 0, 10), // Default to 0 if missing or invalid
-        interactionCost: parseFloat(data.interactionCost || 0).toFixed(2), // Default to "0.00" if missing or invalid
-      };
-      setStats(sanitizedStats);
+    console.log(`🔗 Connected to network: ${network} (chainId: ${currentChainId})`);
 
-    });
+    // Start listening for Firestore stats updates for the correct network
+    const unsubscribe = listenForStatsUpdates(network);
 
-    return () => unsubscribe(); // Cleanup the listener when the component unmounts
-  }, []);
+    // Cleanup listener on component unmount or when network changes
+    return () => unsubscribe();
+  }, [network, currentChainId]); // Re-run effect if the network or chainId changes
 
   return (
-    <div className="bg-dark-secondary p-6 rounded-lg shadow-lg mb-4 border border-neon-green">
-      <h2 className="text-2xl font-bold text-[#8247e5] mb-2">Stats</h2>
-      <ul className="list-none pl-0 text-gray-300 text-sm">
-        <li>Total Participants: <span className="text-[#8247e5]">{stats.participants}</span></li>
-        <li>Break Attempts: <span className="text-[#8247e5]">{stats.breakInAttempts}</span></li>
-        <li>Message Price: <span className="text-[#8247e5]">{stats.interactionCost} POL</span></li>
-      </ul>
+    // <div className="bg-dark-secondary mt-5 text-neon-green border border-neon-green shadow-md rounded-lg p-4 flex flex-col items-start gap-4">
+    
+    <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md flex flex-col items-start gap-4">
+    <h3 className="text-purple-500 text-2xl font-bold text-center w-full">Game Stats</h3>
+      <div className="flex flex-col gap-3 w-full">
+        {/* Total Participants */}
+        {/* <div className="flex items-center justify-between bg-gradient-to-r from-purple-900 via-purple-700 to-purple-900 rounded-md p-3 shadow-lg border border-purple-500"> */}
+        <div className="flex items-center justify-between bg-gradient-to-r from-purple-900 via-purple-700 to-purple-900 rounded-md p-3 shadow-lg">
+          <p className="text-gray-400 text-sm">Total Participants</p>
+          <p className="text-white font-bold text-lg">{stats.participants}</p>
+        </div>
+        {/* Breach Attempts */}
+        {/* <div className="flex items-center justify-between bg-gradient-to-r from-blue-900 via-blue-700 to-blue-900 rounded-md p-3 shadow-lg border border-blue-500"> */}
+        <div className="flex items-center justify-between bg-gradient-to-r from-blue-900 via-blue-700 to-blue-900 rounded-md p-3 shadow-lg">
+          <p className="text-gray-400 text-sm">Breach Attempts</p>
+          <p className="text-white font-bold text-lg">{stats.breakInAttempts}</p>
+        </div>
+        {/* Message Price */}
+        {/* <div className="flex items-center justify-between bg-gradient-to-r from-green-900 via-green-700 to-green-900 rounded-md p-3 shadow-lg border border-green-500"> */}
+        <div className="flex items-center justify-between bg-gradient-to-r from-green-900 via-green-700 to-green-900 rounded-md p-3 shadow-lg">
+          <p className="text-gray-400 text-sm">Message Price</p>
+          <p className="text-white font-bold text-lg">{stats.interactionCost} POL</p>
+        </div>
+      </div>
     </div>
   );
 }

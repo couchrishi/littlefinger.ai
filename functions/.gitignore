@@ -1,2 +1,5 @@
 node_modules/
 *.local
+
+# run time config
+.runtimeconfig.json

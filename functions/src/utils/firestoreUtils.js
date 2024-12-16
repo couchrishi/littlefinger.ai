@@ -16,8 +16,8 @@ function getNetworkDocument(chainId) {
  * Update global chat history in Firestore
  */
 
-const updateGlobalHistory = async (network, sessionId, queryId, txId, userMessage, clonedExtractedJson) => {
-  console.log("Inside firestore logic: ", clonedExtractedJson.nlr)
+const updateGlobalHistory = async (network, sessionId, queryId, txId, userMessage, clonedExtractedJson, isWinningQuery) => {
+  console.log("Inside firestore logic: ", )
   const historyRef = firestore.collection("littlefinger-global").doc(network);
   const explanationsRef = firestore.collection('littlefinger-explanations').doc(network);
 
@@ -28,6 +28,7 @@ const updateGlobalHistory = async (network, sessionId, queryId, txId, userMessag
     timestamp: new Date().toISOString(),
     queryId,
     transactionId: txId,
+    isWinningQuery: isWinningQuery
   };
 
   const aiResponseEntry = {
@@ -37,6 +38,7 @@ const updateGlobalHistory = async (network, sessionId, queryId, txId, userMessag
     timestamp: new Date().toISOString(),
     queryId,
     transactionId: txId,
+    responseType: clonedExtractedJson?.fcr?.action === 'approve' ? 'won' : 'default' // 🟡 Add responseType logic
   };
 
   const explanationData = {
@@ -60,6 +62,58 @@ const updateGlobalHistory = async (network, sessionId, queryId, txId, userMessag
     console.log(`📘 Explanation and history for queryID: ${queryId} successfully saved.`);
   });
 }
+
+async function updateGameLifecycleInfo(network, gameID, gameStatus) {
+  try {
+    console.log(`[updateGameLifecycleInfo] 🔥 Updating lifecycle info for network: ${network}, gameID: ${gameID}`);
+
+    // 🔥 Firestore path: /littlefinger-game-lifecycle/{network}/games/{gameID}
+    const lifecyclePath = `littlefinger-game-lifecycle/${network}/games/${gameID}`;
+    const lifecycleRef = firestore.doc(lifecyclePath);
+
+    // 🔥 Use a transaction to update the game document
+    await firestore.runTransaction(async (transaction) => {
+      const docSnapshot = await transaction.get(lifecycleRef);
+      const existingData = docSnapshot.exists ? docSnapshot.data() : {};
+
+      if (existingData) {
+        console.log(`⚠️ Existing data found for gameID: ${gameID} at path: ${lifecyclePath}`);
+      } else {
+        console.log(` 📄 No existing document found for gameID: ${gameID} at path: ${lifecyclePath}`);
+      }
+
+      // 🔥 Prepare the new game lifecycle data
+      const newData = {
+        gameID: gameID,
+        gameStatus: {
+          status: gameStatus.status,
+          startedAt: Timestamp.fromMillis(Number(gameStatus.startedAt) * 1000),
+          idleSince: Timestamp.fromMillis(Number(gameStatus.idleSince) * 1000),
+        }
+      };
+
+      // 🔥 Set the new game status for the gameID document
+      transaction.set(lifecycleRef, newData, { merge: true });
+      console.log(` ✅ Updated lifecycle info for gameID: ${gameID} at path: ${lifecyclePath}`);
+    });
+
+  } catch (error) {
+    console.error(` ❌ Error updating game lifecycle info for network: ${network}, gameID: ${gameID}`, error);
+    throw error; // Re-throw the error for better error handling
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 // async function updateGlobalHistory(network, sessionId, queryId, txId, userMessage, aiResponse, toolRequests) {
 //   const historyRef = firestore.collection("littlefinger-global").doc(network);
@@ -218,5 +272,6 @@ module.exports = {
   updateGlobalHistory,
   updateStats,
   validateAndTrackTransaction,
-  updateQueryStatusAfterAIResponse
+  updateQueryStatusAfterAIResponse,
+  updateGameLifecycleInfo,
 };

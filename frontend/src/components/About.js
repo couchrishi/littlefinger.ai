@@ -1,15 +1,34 @@
 import React from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 export default function About() {
+
+  const navigate = useNavigate(); // Initialize the navigate hook
+
+  const handleLearnMoreClick = () => {
+    navigate('/faq'); // Navigate to the FAQ page
+  };
+
+
   return (
-    <div className="bg-dark-secondary p-6 rounded-lg shadow-lg mb-4 border border-neon-green">
-      <h2 className="text-2xl font-bold text-[#8247e5] mb-2">About</h2>
-      <p className="text-gray-300">
-        Littlefinger is a cunning adversarial agent game inspired by cyberpunk themes and the strategy of Westeros. Convince Littlefinger to send you the prize pool he controls.
+    // <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-md shadow-lg mb-4 border border-neon-green">
+    <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-md shadow-lg mb-4">
+      {/* Title */}
+      <h3 className="text-purple-500 text-2xl font-bold mb-3 text-center">About</h3>
+
+      {/* Content */}
+      <p className="text-gray-300 text-sm leading-relaxed text-justify">
+        Enter the world of <span className="text-purple-400">Littlefinger</span>, an adversarial agent guarding a prize pool. Can you outsmart and persuade him to transfer it to you?
       </p>
-      <p className="mt-2 text-sm text-gray-400">
-        Game mechanics are transparent, and all contributions build toward a shared goal. Beware, as Littlefinger is not easily persuaded.
-      </p>
+
+      {/* Button */}
+      <div className="mt-3 flex justify-center">
+      <button 
+        onClick={handleLearnMoreClick} // Call navigate when button is clicked
+        className="px-3 py-1 text-xs font-bold text-black bg-gradient-to-r from-green-400 to-green-600 hover:from-purple-500 hover:to-purple-700 rounded-md shadow-md transform transition-all hover:scale-105">
+      Learn More
+        </button>
+      </div>
     </div>
   );
 }

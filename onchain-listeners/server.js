@@ -1,4 +1,4 @@
-const { listenForPlayerActionEvents } = require("./listeners/playerActionListeners");
+const { listenForGameContractEvents } = require("./listeners/listeners");
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 8080; // Port required by Cloud Run
@@ -16,8 +16,9 @@ if (!["testnet", "mainnet"].includes(network)) {
   try {
     console.log(`🎉 Starting all contract event listeners on ${network.toUpperCase()} network...`);
 
-    // Start listeners using Alchemy SDK
-    await listenForPlayerActionEvents(network);
+    // Start Player Action Event Listeners
+    await listenForGameContractEvents(network);
+    //await listenForGameLifecycleEvents(network);
 
     console.log("✅ All listeners are now running.");
   } catch (error) {

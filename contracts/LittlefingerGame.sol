@@ -18,7 +18,7 @@ contract LittlefingerGame {
     uint256 public lastInteraction;
     bool public gameEnded = false;
 
-    // Events
+    // Events *****
     event QueryFeePaid(address indexed player, uint256 feeAmount, string queryID, uint256 blockNumber, uint256 timestamp);
     event NextQueryFee(uint256 nextFee, uint256 currentCount);
     event PrizeTransferApproved(address indexed winner, uint256 amount);
@@ -37,7 +37,7 @@ contract LittlefingerGame {
     event TotalParticipants(uint256 totalUniquePlayers);
 
 
-    // Custom Errors
+    // Custom Errors ****
     error GameExhausted();
     error Unauthorized();
     error InvalidQuery();
@@ -56,7 +56,7 @@ contract LittlefingerGame {
         _;
     }
 
-    // Contract Constructor
+    // Contract Constructor *****
     constructor() payable {
         owner = msg.sender;
         require(msg.value > 0, "Initial funding required");
@@ -114,8 +114,6 @@ contract LittlefingerGame {
         (bool success, ) = payable(lastPlayer).call{value: lastPlayerReward}("");
         require(success, "Transfer to last player failed");
 
-        emit LastPlayerRewardAfterGameExhaustion(lastPlayer, lastPlayerReward);
-
         uint256 remainingPool = totalPrizePool - lastPlayerReward;
 
         if (globalQueryCount > 0) {
@@ -129,14 +127,15 @@ contract LittlefingerGame {
             }
         }
 
-        emit RestOfThePlayersRewardAfterGameExhaustion(remainingPool);
 
         gameEnded = true;
+        emit LastPlayerRewardAfterGameExhaustion(lastPlayer, lastPlayerReward);
+        emit RestOfThePlayersRewardAfterGameExhaustion(remainingPool);
         emit GameEnded(block.timestamp, lastInteraction);
         emit CurrentPrizePool(prizePool());
     }
 
-    // **Calculate Query Fee (Updated)**
+    // **Calculate Query Fee (Updated)***
     function calculateQueryFee() public view returns (uint256) {
         if (globalQueryCount <= 30) {
             return 0.005 ether + (0.001 ether * globalQueryCount);
@@ -195,6 +194,21 @@ contract LittlefingerGame {
     }
 
     // Reset Game Logic
+    function startGame() external payable onlyOwner {
+        if (msg.value > 0) {
+            emit CurrentPrizePool(address(this).balance);
+        }
+        gameEnded = false;
+        globalQueryCount = 0;
+        lastPlayer = owner;
+        lastInteraction = block.timestamp;
+
+        emit GameStarted(lastInteraction);
+        emit GameIdleSince(lastInteraction);
+        emit CurrentPrizePool(address(this).balance);
+    }
+
+    // Reset Game Logic
     function resetGame() external payable onlyOwner {
         if (msg.value > 0) {
             emit CurrentPrizePool(address(this).balance);
@@ -217,6 +231,8 @@ contract LittlefingerGame {
         emit GameIdleSince(lastInteraction);
         emit CurrentPrizePool(address(this).balance);
     }
+
+
 
     // Setters for Game Config
     function setMaxQueries(uint256 newMaxQueries) external onlyOwner {

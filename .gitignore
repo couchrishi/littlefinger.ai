@@ -70,3 +70,5 @@ node_modules/
 
 /frontend/.git
 
+# run time configs
+.runtimeconfig.json

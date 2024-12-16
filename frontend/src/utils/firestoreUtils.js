@@ -1,30 +1,74 @@
 import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 import db from "../config/firebaseConfig";
+import { setStats } from "../redux/slices/gameStatsSlice";
+import store from "../redux/store"; // Import the Redux store
+
 
 /**
- * Listen for real-time stats updates from Firestore
- * @param {function} callback - Function to execute when stats are updated
+ * 🔥 Helper function to safely convert Firestore Timestamp to ISO string
+ * @param {object} timestamp - Firestore Timestamp object
+ * @returns {string | null} ISO date string or null if timestamp is invalid
+ */
+const convertTimestampToISO = (timestamp) => {
+  try {
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate().toISOString();
+    }
+  } catch (error) {
+    console.error("❌ Error converting timestamp to ISO:", error);
+  }
+  return null;
+};
+
+/**
+ * 🔥 Listen for real-time stats updates from Firestore
+ * @param {string} network - The network to listen for (e.g., 'testnet', 'mainnet')
  * @returns {function} Unsubscribe function to stop listening
  */
-export const listenForStatsUpdates = (callback) => {
+export const listenForStatsUpdates = (network) => {
+  if (!network) {
+    throw new Error("Network parameter is required for listenForStatsUpdates.");
+  }
+
   try {
-    const statsDoc = doc(db, "littlefinger-stats", "testnet"); // Update Firestore path if needed
+    // Reference the stats document based on the passed network
+    const statsDoc = doc(db, "littlefinger-stats", network);
+
+    // Subscribe to Firestore document updates
     const unsubscribe = onSnapshot(statsDoc, (snapshot) => {
-      if (snapshot.exists()) {
-        console.log("Stats updated:", snapshot.data());
-        callback(snapshot.data());
-      } else {
-        console.log("Stats document does not exist.");
+      try {
+        if (snapshot.exists()) {
+          const data = snapshot.data() || {};
+          console.log(`📊 Stats updated for ${network}:`, data);
+
+          // Dispatch sanitized stats directly to Redux
+          const sanitizedStats = {
+            prizePool: parseFloat(data.currentPrizePool || 0).toFixed(2),
+            prizePoolInUsd: parseFloat(data.currentPrizePoolUsd || 0).toFixed(2),
+            participants: parseInt(data.participants?.length || 0, 10),
+            breakInAttempts: parseInt(data.breakInAttempts || 0, 10),
+            interactionCost: parseFloat(data.interactionCost || 0).toFixed(3),
+          };
+
+          store.dispatch(setStats(sanitizedStats));
+        } else {
+          console.warn(`⚠️ Stats document does not exist for ${network}.`);
+        }
+      } catch (error) {
+        console.error(`❌ Error processing stats update for ${network}:`, error);
       }
     });
+
     return unsubscribe;
-  } catch (err) {
-    console.error("Error listening for stats updates:", err);
-    throw err;
+  } catch (error) {
+    console.error(`❌ Error setting up listener for ${network}:`, error);
+    return () => {}; // Return a no-op unsubscribe function
   }
 };
+
+
 /**
- * Listen for real-time global chat updates from Firestore
+ * 🔥 Listen for real-time global chat updates from Firestore
  * @param {string} networkKey - "mainnet" or "testnet"
  * @param {function} callback - Function to execute when chat data updates
  * @returns {function} Unsubscribe function to stop listening
@@ -33,18 +77,23 @@ export const listenForGlobalChat = (networkKey, callback) => {
   try {
     const globalChatRef = doc(db, "littlefinger-global", networkKey);
     const unsubscribe = onSnapshot(globalChatRef, (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const globalData = docSnapshot.data();
-        callback(globalData.messages || []);
-      } else {
-        console.log("No global chat context found.");
-        callback([]); // Return an empty array if no document exists
+      try {
+        if (docSnapshot.exists()) {
+          const globalData = docSnapshot.data() || {};
+          callback(globalData.messages || []);
+          console.log("💬 Global Chat updated:", globalData.messages || []);
+        } else {
+          console.warn("⚠️ No global chat context found.");
+          callback([]);
+        }
+      } catch (error) {
+        console.error("❌ Error processing global chat update:", error);
       }
     });
     return unsubscribe;
   } catch (error) {
-    console.error("Error listening for global chat updates:", error);
-    throw error;
+    console.error("❌ Error setting up listener for global chat updates:", error);
+    return () => {};
   }
 };
 
@@ -55,17 +104,67 @@ export const listenForGlobalChat = (networkKey, callback) => {
  */
 export const fetchAppConfig = async (networkKey) => {
   try {
-    const configRef = doc(db, "littlefinger-frontend-config", networkKey); // Reference the Firestore document
-    const docSnapshot = await getDoc(configRef); // Wait for the document to be retrieved
+    //const configRef = doc(db, "littlefinger-frontend-config", networkKey);
+    const configRef = doc(db, "littlefinger-frontend-config", 'testnet');
+    const docSnapshot = await getDoc(configRef);
     if (docSnapshot.exists()) {
-      console.log(`✅ Config for network ${networkKey}:`, docSnapshot.data());
-      return docSnapshot.data(); // Return the Firestore document's data
+      const configData = docSnapshot.data() || {};
+      console.log(`✅ Config for network ${networkKey}:`, configData);
+      return configData;
     } else {
-      console.error(`❌ No config found for network: ${networkKey}`);
-      return null; // Return null if document does not exist
+      console.warn(`⚠️ No config found for network: ${networkKey}`);
+      return null;
     }
   } catch (error) {
-    console.error(`❌ Error fetching Firestore config:`, error);
-    throw error; // Propagate the error so it can be caught by the calling function
+    console.error("❌ Error fetching Firestore config:", error);
+    return null;
   }
+};
+
+/**
+ * 🔥 Listen for changes to the "gameStatus" in the Firestore document.
+ * 
+ * Firestore path: 
+ * /littlefinger-game-lifecycle/{network}/games/{contractAddress}
+ * 
+ * @param {string} network - The network key (e.g., 'mainnet' or 'testnet').
+ * @param {string} contractAddress - The contract address used as part of the document path.
+ * @param {function} callback - Callback function to receive the gameStatus updates.
+ * @returns {function} Unsubscribe function to stop listening to changes.
+ */
+export const listenForGameState = (network, contractAddress, callback) => {
+
+  if (!network || !contractAddress) {
+    console.error("❌ Network and contractAddress are required to listen for game state.");
+    return () => {};
+  }
+
+  const docRef = doc(db, 'littlefinger-game-lifecycle', 'testnet', 'games', contractAddress);
+
+  const unsubscribe = onSnapshot(docRef, (doc) => {
+    try {
+      if (doc.exists()) {
+        const data = doc.data() || {};
+        if (data && data.gameStatus) {
+          const serializableGameStatus = {
+            ...data.gameStatus,
+            startedAt: convertTimestampToISO(data.gameStatus?.startedAt) || 'N/A',
+            idleSince: convertTimestampToISO(data.gameStatus?.idleSince) || 'N/A',
+          };
+          console.log(`🎮 Game status updated for network: ${network}, contract: ${contractAddress}`, serializableGameStatus);
+          callback(serializableGameStatus);
+        } else {
+          console.warn(`⚠️ No "gameStatus" field found in document for network: ${network} and contract: ${contractAddress}`);
+        }
+      } else {
+        console.warn(`⚠️ Document for network: ${network} and contract: ${contractAddress} does not exist.`);
+      }
+    } catch (error) {
+      console.error("❌ Error processing game state update:", error);
+    }
+  }, (error) => {
+    console.error(`❌ Firestore onSnapshot error for network: ${network}, contract: ${contractAddress}`, error);
+  });
+
+  return unsubscribe;
 };

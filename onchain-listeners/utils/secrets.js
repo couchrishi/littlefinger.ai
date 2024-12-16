@@ -11,7 +11,9 @@ const secrets = {
     WSS_URL: "POLYGON_AMOY_WSS_URL",
     RPC_URL: "POLYGON_AMOY_RPC_URL",
     PRIVATE_KEY: "AMOY_DEPLOYER_PRIVATE_KEY",
-    ALCHEMY_API_KEY: "AMOY_ALCHEMY_API_KEY"
+    ALCHEMY_API_KEY: "AMOY_ALCHEMY_API_KEY",
+    PROJECT_NAMESPACE: "PROJECT_NAMESPACE",
+    CMC_API_KEY: "CMC_API_KEY",
   },
   mainnet: {
     SERVICE_ACCOUNT_KEY: "SERVICE_ACCOUNT_KEY",
@@ -19,7 +21,9 @@ const secrets = {
     WSS_URL: "POLYGON_MAINNET_WSS_URL",
     RPC_URL: "POLYGON_MAINNET_RPC_URL",
     PRIVATE_KEY: "MAINNET_DEPLOYER_PRIVATE_KEY",
-    ALCHEMY_API_KEY: "POLYGON_MAINNET_ALCHEMY_API_KEY"
+    ALCHEMY_API_KEY: "POLYGON_MAINNET_ALCHEMY_API_KEY",
+    PROJECT_NAMESPACE: "PROJECT_NAMESPACE",
+    CMC_API_KEY: "CMC_API_KEY",
   }
 };
 
@@ -59,4 +63,4 @@ async function getNetworkSecrets(network) {
   return secretValues;
 }
 
-module.exports = { getNetworkSecrets };
+module.exports = { getNetworkSecrets, accessSecret };

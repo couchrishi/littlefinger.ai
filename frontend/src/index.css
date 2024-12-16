@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+
+/* Example of font hierarchy */
+/* body {
+  font-family: 'Nunito', sans-serif;
+
+} */
+
+
 /* Add custom colors */
 @layer utilities {
   .bg-cyber-dark {
@@ -26,4 +34,128 @@
   .disable-body-scroll {
     overflow: hidden; /* Disable body scroll */
   }
+
+  /* 🔥 Golden Box Styles for Winning Message */
+  .bg-golden-gradient {
+    background: linear-gradient(to right, #FFD700, #FFBF00, #FFA500); /* Golden gradient */
+  }
+
+  .border-golden {
+    border-color: #FFD700 !important; /* Gold color border */
+  }
+
+  .animate-pulse {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(0.95);
+    }
+  }
+
+  /* Confetti Styles */
+  .confetti {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: url('/src/assets/images/confetti.png'); /* Replace with your confetti image URL */
+    background-size: cover;
+    z-index: 20;
+  }
+
+  /* Animation for spinning effects */
+  .animate-spin-slow {
+    animation: spin 8s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Animation for bouncing effects */
+  .animate-bounce {
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+/* 
+  .h-full {
+    height: calc(100% - <your header/footer height>);
+  } */
+
+  @layer utilities {
+    .font-digital {
+      font-family: "DigitalClock", monospace;
+      letter-spacing: 0.1em;
+    }
+  
+    .shadow-inner {
+      box-shadow: inset 0px 0px 10px 2px rgba(0, 255, 0, 0.6);
+    }
+  
+    .neon-border {
+      border: 2px solid #39ff14; /* Neon green */
+      box-shadow: 0 0 15px #39ff14;
+    }
+  }
+
+  .timer-box {
+    background: linear-gradient(to right, #39ff14, #a020f0); /* Neon green to purple */
+    color: black; /* Text color */
+    border: 2px solid #39ff14; /* Neon green border */
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 1.5rem;
+    box-shadow: 0 0 10px #39ff14; /* Glow effect */
+    margin-top: 1rem;
+  }
+
+  .mt-auto {
+    margin-top: auto; /* Push to the bottom */
+  }
+  
+  .text-neon-green {
+    color: #39ff14; /* Matches your neon green theme */
+  }
+  
+  .bg-black {
+    background-color: #000; /* Matches the dark background */
+  }
+  
+  .border-neon-green {
+    border-color: #39ff14; /* Border color for consistency */
+  }
+  
+  .w-16 {
+    width: 4rem; /* Adjust the logo size */
+  }
+  
+  .h-auto {
+    height: auto; /* Maintain aspect ratio */
+  }
+  
 }
+
+

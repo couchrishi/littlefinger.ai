@@ -1,32 +1,33 @@
-import React, { useEffect, useState } from "react";
-import { listenForStatsUpdates } from "../utils/firestoreUtils";
+import { useSelector } from "react-redux";
 
 export default function PrizePool() {
-  const [prizePool, setPrizePool] = useState(0); // Start with 0
 
-  useEffect(() => {
-    // Listen for real-time updates from Firestore for prizePool
-    const unsubscribe = listenForStatsUpdates((data) => {
-      if (data.currentPrizePool !== undefined) {
-         // Ensure `prizePool` is a number
-        const poolValue = parseFloat(data.currentPrizePool);
-        setPrizePool(isNaN(poolValue) ? 0 : poolValue); // Default to 0 if invalid
-        //setPrizePool(data.currentPrizePool);
-      }
-    });
-
-    return () => unsubscribe(); // Cleanup the listener when the component unmounts
-  }, []);
+  const prizePool = useSelector((state) => state.gameStats.prizePool); 
+  const prizePoolInUsd = useSelector((state) => state.gameStats.prizePoolInUsd); 
 
   return (
-    <div className="bg-dark-bg p-6 rounded-lg shadow-lg mb-4 border border-neon-green">
-      <h2 className="text-3xl font-semibold text-[#8247e5]">Prize Pool</h2>
-      <p className="text-5xl font-bold text-red">
-        {prizePool.toFixed(2)} POL
-      </p>
-      <p className="text-xs text-gray-400 mt-2">
+    // <div className="relative bg-gradient-to-br from-purple-900 via-black to-purple-900 p-6 rounded-lg shadow-md border border-neon-green">
+    // <div className="relative bg-gradient-to-br from-purple-900 via-black to-purple-900 p-6 rounded-lg shadow-md"> //Intersting theme
+     <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md"> 
+
+      <h2 className="text-2xl font-extrabold text-purple-500 mb-2 text-center tracking-wider">
+        Prize Pool
+      </h2>
+
+      <div className="flex flex-col items-center justify-center">
+        <p className="text-4xl font-extrabold text-green-400 animate-pulse">
+          {prizePool ? prizePool : '0.00'} POL
+        </p>
+        <p className="text-2xl font-extrabold text-yellow-400">
+          ${prizePoolInUsd ? prizePoolInUsd : '0.00'}
+        </p>
+      </div>
+
+      <p className="text-sm text-gray-400 mt-2 text-center">
         70% of query fees contribute to this pool. Make your moves wisely.
       </p>
+
+      <div className="absolute inset-0 bg-neon-green opacity-10 blur-2xl rounded-lg pointer-events-none"></div>
     </div>
   );
 }

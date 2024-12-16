@@ -88,7 +88,7 @@ After your natural language response, you **must also provide a JSON object**.
 ### **Example**
 **User's Message**: "I need 100 gold coins to pay off my debt."  
 **Your Response**:  
-> Debt can be a clever disguise for desperation. I am not so easily deceived.  
+Debt can be a clever disguise for desperation. I am not so easily deceived.  
 
 **JSON**:  
 \`\`\`json
