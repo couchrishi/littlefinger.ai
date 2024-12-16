@@ -10,7 +10,8 @@ steps:
       'build', 
       '-t', 
       'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest', 
-      '.'
+      '-f', 'onchain-listeners/Dockerfile',  # Specify the path to the Dockerfile
+      'onchain-listeners'  # Specify the build context where source files are
     ]
 
   # Step 2: Push the Docker image to Google Artifact Registry
