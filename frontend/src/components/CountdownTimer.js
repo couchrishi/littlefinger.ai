@@ -35,7 +35,7 @@ const CountdownTimer = () => {
     // <div className="bg-dark-secondary text-neon-green border border-neon-green shadow-md rounded-lg p-4 text-center ">
     <div className="bg-gradient-to-r from-gray-900 via-black to-gray-900 p-4 rounded-lg shadow-md text-center ">
       <h3 className="text-purple-500 text-xl font-bold mb-2">Time Remaining</h3>
-      <div className="font-digital text-3xl text-neon-green">
+      <div className="font-digital text-2xl text-neon-green">
         {timeLeft.hours.toString().padStart(2, "0")}:
         {timeLeft.minutes.toString().padStart(2, "0")}:
         {timeLeft.seconds.toString().padStart(2, "0")}

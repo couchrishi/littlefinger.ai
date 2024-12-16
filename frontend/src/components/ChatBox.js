@@ -379,7 +379,7 @@ export default function ChatBox() {
 
       {/* <div className="h-64 overflow-y-auto bg-black p-4 mb-4 rounded-lg border border-neon-green"> */}
       {/* <div className="h-[65vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-4 rounded-lg border border-neon-green"> */}
-      <div className="h-[64vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-6 rounded-lg">
+      <div className="h-[62vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-6 rounded-lg">
 
         {chatHistory.map((msg, index) => {
 
@@ -474,7 +474,8 @@ export default function ChatBox() {
           }
 
           return (
-            <div key={index} className={`mb-4 flex ${alignmentClass} items-center gap-2`}>
+           <div key={index} className={`mb-4 flex ${alignmentClass} items-center gap-2`}>
+           {/* <div key={index} className={`mb-6 flex ${isAI ? "justify-start" : "justify-end"} items-start`}> */}
               <div className="w-8 h-8 rounded-full cursor-pointer flex-shrink-0" style={{ backgroundColor: profileColor }}></div>
               <div>
                 {/* <span className={`inline-block px-2 py-1 rounded-lg ${messageStyle}`}>{msg.text || "No response"}</span> */}

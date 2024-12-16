@@ -5,13 +5,13 @@ options:
 
 # Steps to execute during the Cloud Build process
 steps:
-  # Step 1: Build the Docker image for the frontend
+  # Step 1: Build the Docker image for the backend
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Docker image'
     args: [
       'build', 
       '-t', 
-      'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/littlefinger-frontend:latest', 
+      'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest', 
       '.'
     ]
 
@@ -20,7 +20,7 @@ steps:
     id: 'Push Docker image'
     args: [
       'push', 
-      'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/_SERVICE_NAME:latest'
+      'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest'
     ]
 
   # Step 3: Deploy the image to Cloud Run
@@ -31,7 +31,7 @@ steps:
       - '-c'
       - |
         gcloud run deploy $_SERVICE_NAME \
-          --image us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/_SERVICE_NAME:latest \
+          --image us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest \
           --platform managed \
           --region $_REGION \
           --service-account $_SERVICE_ACCOUNT \
@@ -40,11 +40,10 @@ steps:
 # Substitute variables that are passed to the cloudbuild.yaml during execution
 substitutions:
   _PROJECT_ID: "$PROJECT_ID"
-  _SERVICE_NAME: "littlefinger-frontend"
-  _REPO_NAME: "littlefinger-frontend-repo"
+  _SERVICE_NAME: "littlefinger-backend"
+  _REPO_NAME: "littlefinger-backend-repo"
   _REGION: "us-central1"
   _SERVICE_ACCOUNT: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
-
 
 # Permissions for Cloud Build to use Artifact Registry and Cloud Run
 timeout: '1200s' # 20 minutes
