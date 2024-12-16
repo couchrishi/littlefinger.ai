@@ -378,8 +378,8 @@ export default function ChatBox() {
       )}
 
       {/* <div className="h-64 overflow-y-auto bg-black p-4 mb-4 rounded-lg border border-neon-green"> */}
-      {/* <div className="h-[65vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-4 rounded-lg border border-neon-green"> */}
-      <div className="h-[62vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-6 rounded-lg">
+      <div className="h-[63vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-4 rounded-lg">
+      {/* <div className="h-[62vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-6 rounded-lg"> */}
 
         {chatHistory.map((msg, index) => {
 
@@ -404,7 +404,7 @@ export default function ChatBox() {
               msg.status === "waiting_for_tx_approval"
             ? "bg-gray-500 text-white italic text-sm "
             : isAI
-            ? "bg-gray-700 text-neon-green text-sm "
+            ? "bg-gray-700 text-green-500 text-sm "
             : "bg-purple-500 text-gray-200 text-sm";
 
 
@@ -534,7 +534,7 @@ export default function ChatBox() {
           )}
 
       {isWeb3Connected && gameStatus === "started" && (
-              <p className="mt-2 text-center text-purple-500 text-sm">The Game is On. Littlefinger awaits your move.</p>
+              <p className="mt-2 text-center text-gray-500 text-sm">Game on. All yours.</p>
             )}
 
     </div>
