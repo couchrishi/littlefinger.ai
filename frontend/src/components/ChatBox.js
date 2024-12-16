@@ -379,7 +379,7 @@ export default function ChatBox() {
 
       {/* <div className="h-64 overflow-y-auto bg-black p-4 mb-4 rounded-lg border border-neon-green"> */}
       {/* <div className="h-[65vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-4 rounded-lg border border-neon-green"> */}
-      <div className="h-[63vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-4 rounded-lg">
+      <div className="h-[64vh] max-h-[65vh] overflow-y-auto bg-black p-4 mb-6 rounded-lg">
 
         {chatHistory.map((msg, index) => {
 

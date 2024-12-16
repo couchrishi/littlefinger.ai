@@ -1,6 +1,10 @@
 {
   "hosting": {
     "public": "frontend/build",
+    "github": {
+      "repo": "couchrishi/littlefinger.ai",
+      "branch": "main"
+    },
     "headers": [
       {
         "source": "**",

@@ -135,7 +135,7 @@ export default function Header() {
 
       <div className="absolute right-36 top-1/2 transform -translate-y-1/2 flex items-center space-x-2 mt-4">
         {connectedAccount ? (
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-1">
             <select
               value={currentChainId || ""}
               onChange={handleNetworkChange}
