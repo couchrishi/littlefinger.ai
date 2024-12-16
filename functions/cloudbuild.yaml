@@ -3,43 +3,35 @@ options:
   logging: "CLOUD_LOGGING_ONLY"
 
 steps:
-  # Step 1: Build the Docker image for the backend
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build Docker image'
-    args: [
-      'build', 
-      '-t', 
-      'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest', 
-      '-f', 'functions/Dockerfile',  # Path to the Dockerfile
-      'functions'  # Build context where source files are
-    ]
-
-  # Step 2: Push the Docker image to Google Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push Docker image'
-    args: [
-      'push', 
-      'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest'
-    ]
-
-  # Step 3: Deploy the image to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'Deploy to Cloud Run'
+  # Step 1: Install dependencies for the Cloud Functions
+  - name: 'node:18' 
+    id: 'Install dependencies'
     entrypoint: 'bash'
     args: 
       - '-c'
       - |
-        gcloud run deploy $_SERVICE_NAME \
-          --image us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest \
-          --platform managed \
+        cd functions
+        npm install
+
+  # Step 2: Deploy the Cloud Function to Google Cloud Functions
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy Cloud Function'
+    entrypoint: 'bash'
+    args: 
+      - '-c'
+      - |
+        gcloud functions deploy $_SERVICE_NAME \
           --region $_REGION \
           --service-account $_SERVICE_ACCOUNT \
+          --runtime nodejs18 \
+          --source functions \
+          --trigger-http \
           --allow-unauthenticated
 
 substitutions:
   _PROJECT_ID: "$PROJECT_ID"
-  _SERVICE_NAME: "littlefinger-backend"
-  _REPO_NAME: "littlefinger-backend-repo"
+  _SERVICE_NAME: "chatWithAI" # Cloud Function name
+  _REPO_NAME: "littlefinger-backend-repo" # Not required for Cloud Functions but can be used for consistency
   _REGION: "us-central1"
   _SERVICE_ACCOUNT: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
 
