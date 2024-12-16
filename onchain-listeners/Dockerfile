@@ -1,22 +1,20 @@
-# Dockerfile
-
-# Use Node.js 18 as the base image
+# Use an official Node.js runtime as a parent image
 FROM node:18
 
 # Set the working directory
 WORKDIR /app
 
-# Copy only the necessary files
+# Copy package.json and package-lock.json files
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the source code
+# Copy the rest of the application code
 COPY . .
 
-# Expose the port Cloud Run listens on
+# Expose port 8080 (used by your app)
 EXPOSE 8080
 
-# Start the server
-CMD ["npm", "start"]
+# Command to run your server (can be configured via ENTRYPOINT if needed)
+CMD ["node", "server.js", "testnet"]
