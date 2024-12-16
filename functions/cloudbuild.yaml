@@ -1,9 +1,6 @@
-# cloudbuild.yaml
-
 options:
   logging: "CLOUD_LOGGING_ONLY"
 
-# Steps to execute during the Cloud Build process
 steps:
   # Step 1: Build the Docker image for the backend
   - name: 'gcr.io/cloud-builders/docker'
@@ -37,7 +34,6 @@ steps:
           --service-account $_SERVICE_ACCOUNT \
           --allow-unauthenticated
 
-# Substitute variables that are passed to the cloudbuild.yaml during execution
 substitutions:
   _PROJECT_ID: "$PROJECT_ID"
   _SERVICE_NAME: "littlefinger-backend"
@@ -45,5 +41,4 @@ substitutions:
   _REGION: "us-central1"
   _SERVICE_ACCOUNT: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
 
-# Permissions for Cloud Build to use Artifact Registry and Cloud Run
-timeout: '1200s' # 20 minutes
+timeout: '1200s'
