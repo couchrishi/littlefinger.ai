@@ -33,30 +33,33 @@ steps:
           IFS=',' read -r vm_name zone <<< "$vm"
           echo "🚀 Deploying to $vm_name in zone $zone"
           
-          # Deploy container on VM
           gcloud compute ssh $vm_name --zone=$zone --project=$PROJECT_ID --command "
-          echo '🔄 Pulling latest image...'
-          sudo docker pull us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest && 
-          
-          echo '🛑 Stopping existing container...'
-          sudo docker stop $_SERVICE_NAME || true && 
-          
-          echo '🗑️ Removing existing container...'
-          sudo docker rm $_SERVICE_NAME || true && 
-          
-          echo '🚀 Running new container...'
-          sudo docker run -d --name $_SERVICE_NAME --restart always -p 8080:8080 us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest
+            echo '🔄 Pulling latest image...'
+            sudo docker pull us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest && 
+            
+            echo '🛑 Stopping existing container...'
+            sudo docker stop $_SERVICE_NAME || true && 
+            
+            echo '🗑️ Removing existing container...'
+            sudo docker rm $_SERVICE_NAME || true && 
+            
+            echo '🚀 Running new container...'
+            sudo docker run -d --name $_SERVICE_NAME --restart always \
+              -p 8080:8080 \
+              -v /etc/google-cloud:/etc/google-cloud \
+              -e GOOGLE_APPLICATION_CREDENTIALS=/etc/google-cloud/service-accounts/credentials.json \
+              us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/$_SERVICE_NAME:latest
           "
 
           echo "📡 Waiting for health check on $vm_name ($zone)..."
-          sleep 10 # Give container some time to boot
+          sleep 10 # Wait for container to boot
           health_url="http://$(gcloud compute instances describe $vm_name --zone=$zone --format='get(networkInterfaces[0].accessConfigs[0].natIP)'):8080/healthz"
           
           if curl --silent --fail $health_url; then
             echo "✅ Health check passed for $vm_name ($zone)"
           else
             echo "❌ Health check failed for $vm_name ($zone)"
-            exit 1 # Fail the Cloud Build if health check fails
+            exit 1
           fi
         done
 
@@ -70,5 +73,4 @@ substitutions:
   _ZONE_2: "asia-southeast1-b"
   _SERVICE_ACCOUNT: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
 
-# Total time allowed for the build to complete (30 minutes)
 timeout: '1800s'
