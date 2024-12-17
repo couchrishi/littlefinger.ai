@@ -20,7 +20,9 @@ const {
     handleNetworkChange, 
     handleWebSocketError,
     scheduleRestart,
-    waitForProviderReady } = require('./networkUtils.js');
+    waitForProviderReady,
+    startPing,
+    stopPing } = require('./networkUtils.js');
 
 
 // 🔥 Helper to initialize WebSocket provider
@@ -36,6 +38,9 @@ async function initializeWebSocketProvider(WSS_URL) {
    
   // Wait for provider to be ready (modularized now)
   await waitForProviderReady(webSocketProvider);
+
+   // 🔥 Start pinging to keep WebSocket alive
+   startPing(webSocketProvider);
 
   console.log('[contractUtils] ✅ WebSocket connected and ready!');
   return webSocketProvider;
@@ -71,6 +76,7 @@ async function restartContractListeners(contract, newContractAddress, newAbi, we
     if (contract) {
       try {
         contract.removeAllListeners();
+        stopPing();
         console.log(`[contractUtils] ✅ Removed all old listeners from the contract ${contract}`);
       } catch (error) {
         console.error('[contractUtils] ❌ Failed to remove listeners from contract:', error);
@@ -79,6 +85,7 @@ async function restartContractListeners(contract, newContractAddress, newAbi, we
     if (newContractAddress && newAbi) {
       const newContract = new ethers.Contract(newContractAddress, newAbi, webSocketProvider);
       console.log(`[contractUtils] 🔄 Contract listeners restarted successfully for ${newContractAddress}`);
+      startPing(webSocketProvider);
 
       if (!eventListeners || !Array.isArray(eventListeners)) {
         console.warn('[contractUtils] ⚠️ No event listeners provided.');

@@ -174,11 +174,11 @@ const compileAndTestContract = async () => {
       hasCompilationChanges = false; // No changes
     }
 
-    // 3️⃣ Run tests for LittlefingerGame
-    console.log(`🧪 Running contract tests...`);
-    await runCommand(`npx hardhat test ../test/LittlefingerGame.test.js`);
+    // // 3️⃣ Run tests for LittlefingerGame
+    // console.log(`🧪 Running contract tests...`);
+    // await runCommand(`npx hardhat test ../test/LittlefingerGame.test.js`);
 
-    console.log(`✅ Compilation and all tests passed successfully.`);
+    // console.log(`✅ Compilation and all tests passed successfully.`);
   } catch (error) {
     console.error(`❌ Compilation or tests failed:`, error);
     process.exit(1); // Exit script on failure

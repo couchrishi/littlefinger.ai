@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 contract LittlefingerGame {
-    // State Variables *********
+    // State Variables *************
     address public owner;
     address public lastPlayer;
     uint256 public totalUniquePlayers=0;

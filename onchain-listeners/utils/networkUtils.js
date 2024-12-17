@@ -4,9 +4,48 @@ const ethers = require('ethers');
 let restartScheduled = false;
 let retryCount = 0;
 let retryTimeout = null;
+let pingInterval = null; // To keep track of the ping interval
+
 const RETRY_DELAY_MS = 5000;
 const MAX_RETRY_DELAY_MS = 60000;
 const MAX_RETRY_ATTEMPTS = 10; // 🚀 New: Limit to avoid infinite exponential backoff
+const PING_INTERVAL_MS = 25000; // Ping every 25 seconds
+
+
+/**
+ * Starts the ping to keep the WebSocket connection alive
+ * 
+ * @param {Object} provider - The WebSocket provider object.
+ */
+function startPing(provider) {
+  if (pingInterval) {
+      console.warn('[networkUtils] ⚠️ Ping already active. Skipping startPing...');
+      return;
+  }
+  
+  console.log('[networkUtils] 🚀 Starting ping to keep WebSocket alive every 25 seconds...');
+  pingInterval = setInterval(async () => {
+      try {
+          console.log('[networkUtils] 🔄 Pinging WebSocket provider to keep connection alive...');
+          await provider.getBlockNumber(); // Simple request to keep connection alive
+          console.log('[networkUtils] ✅ Ping successful');
+      } catch (error) {
+          console.error('[networkUtils] ❌ Ping failed. Triggering restart.', error.message);
+          scheduleRestart();
+      }
+  }, PING_INTERVAL_MS);
+}
+
+/**
+ * Stops the ping process to clean up resources
+ */
+function stopPing() {
+  if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+      console.log('[networkUtils] 🔄 Stopped WebSocket ping.');
+  }
+}
 
 /**
  * Handles network change events
@@ -110,5 +149,7 @@ module.exports = {
     handleWebSocketError,
     waitForProviderReady,
     scheduleRestart,
-    resetRetryCount
+    resetRetryCount,
+    startPing,
+    stopPing,
 };
