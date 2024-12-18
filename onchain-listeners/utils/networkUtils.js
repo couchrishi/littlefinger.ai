@@ -28,7 +28,6 @@ async function initializeWebSocketProvider(WSS_URL, network) {
   try {
     provider = new ethers.WebSocketProvider(WSS_URL);
     console.log('[provider] 🌐 Initializing WebSocket provider...');
-
     await provider.getNetwork(); // Ensure provider is ready
 
     if (provider.websocket) {
@@ -41,7 +40,6 @@ async function initializeWebSocketProvider(WSS_URL, network) {
 
       websocket.onclose = (event) => {
         console.warn(`[provider] 🔌 WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
-        cleanUpProvider(provider); // 🔥 Reuse cleanUpProvider
         scheduleReconnection(provider, network); // 🔥 Reuse scheduleReconnection
       };
 
@@ -64,8 +62,15 @@ async function initializeWebSocketProvider(WSS_URL, network) {
     // setTimeout(() => {
     //   console.warn('🔥 Manually triggering scheduleReconnection for testing...');
     //   scheduleReconnection(provider, network); // 🚀 Trigger reconnection manually
-    // }, 30000); // Trigger after 30 seconds
-
+    // }, 30000); // Trigger after 20 seconds
+    // Simulate 1006 WebSocket error
+    // setTimeout(() => {
+    //   if (provider?.websocket) {
+    //     console.warn('🔥 Manually triggering WebSocket termination for 1006 simulation...');
+    //     provider.websocket.terminate(); // 🚀 Use terminate() to force an abrupt disconnect
+    //   }
+    // }, 30000); // Close after 15 seconds
+    
 
     } else {
       throw new Error('❌ WebSocket connection not available on provider');
@@ -91,7 +96,7 @@ function startEnhancedPing(provider, network) {
   }
 
   pingInterval = setInterval(async () => {
-    if (!provider.websocket || provider.websocket.readyState !== 1) {
+    if (!provider || !provider.websocket || provider.websocket.readyState !== 1) {
       console.log('[provider] 🚫 WebSocket not ready, skipping ping');
       return;
     }
@@ -124,12 +129,7 @@ function stopPing() {
  * 🔥 Schedules a reconnection attempt with exponential backoff logic.
  * Destroys the provider, clears intervals, and restarts listeners.
  */
-
-/**
- * 🔥 Schedules a reconnection attempt with exponential backoff logic.
- * Destroys the provider, clears intervals, and restarts listeners.
- */
-async function scheduleReconnection(provider, network = 'testnet') {
+async function scheduleReconnection(provider, network) {
   if (restartScheduled) {
     console.warn('[provider] ⚠️ Reconnection already scheduled. Skipping new attempt.');
     return;
@@ -140,61 +140,59 @@ async function scheduleReconnection(provider, network = 'testnet') {
 
   if (reconnectionAttempt > MAX_RECONNECTION_ATTEMPTS) {
     console.error('[provider] ❌ Maximum reconnection attempts reached. Stopping reconnection attempts.');
+    restartScheduled = false; // Allow future attempts
     return;
   }
 
-  const delay = Math.min(
-    RETRY_DELAY_MS * Math.pow(1.5, reconnectionAttempt),
-    MAX_RETRY_DELAY_MS
-  );
+  // const delay = Math.min(
+  //   RETRY_DELAY_MS * Math.pow(1.5, reconnectionAttempt),
+  //   MAX_RETRY_DELAY_MS
+  // );
+
+  const delay = RETRY_DELAY_MS; // No backoff, always use 5 seconds
+
 
   console.log(`[provider] 🔄 Scheduling reconnection attempt ${reconnectionAttempt} in ${(delay / 1000).toFixed(2)} seconds`);
 
   setTimeout(async () => {
     try {
       console.log('[provider] 🔥 Starting reconnection process...');
-      
-      // 🚀 Step 1: Clear all event listeners and force close the WebSocket
-      if (provider?.websocket) {
-        try {
-          const websocket = provider.websocket;
-          websocket.onopen = null;
-          websocket.onclose = null;
-          websocket.onerror = null;
-          websocket.close(); // 🚀 Force close the WebSocket
-          console.log('[provider] ❌ Cleared all event listeners on WebSocket and force-closed it.');
-        } catch (error) {
-          console.error('[provider] ❌ Error while clearing WebSocket event listeners:', error);
-        }
-      }
 
-      // 🚀 Step 2: Properly destroy the current provider
-      if (provider) {
-        try {
-          console.log('[provider] 🔥 Destroying existing provider...');
-          await Promise.race([
-            provider.destroy(), // 🚀 Destroy provider with timeout
-            new Promise((resolve) => setTimeout(resolve, 5000)) // ⏱️ Timeout after 5 seconds
-          ]);
-          console.log('[provider] ✅ Provider destroyed successfully.');
-        } catch (error) {
-          console.error('[provider] ❌ Error while destroying provider:', error);
-        } finally {
-          provider = null; // Explicitly clear the reference for garbage collection
-          console.log('[provider] ✅ Provider reference cleared from memory.');
-        }
-      }
-
-      // 🚀 Step 3: Clear any running intervals (ping, health checks, etc.)
+      // 🚀 Step 1: Clear ping and health check intervals
       if (pingInterval) clearInterval(pingInterval);
       if (healthCheckInterval) clearInterval(healthCheckInterval);
       console.log('[provider] ✅ Cleared all intervals (ping, health check, etc.)');
 
-      // 🚀 Step 4: Dynamically import the listener to avoid circular import issues
+      // 🚀 Step 2: Properly clean up current provider
+      //await cleanUpProvider(provider); // Ensures destroy() is awaited
+
+      if (provider) {
+        console.log('[provider] 🔥 Destroying existing provider...');
+        await Promise.race([
+          provider.destroy(), 
+          new Promise((resolve) => setTimeout(resolve, 5000)) 
+        ]);
+        console.log('[provider] ✅ Provider destroyed successfully.');
+        provider = null; 
+      }
+
+      // 🚀 Step 2: Destroy provider
+      if (provider) {
+        console.log('[provider] 🔥 Destroying existing provider...');
+        await Promise.race([
+          provider.destroy(), 
+          new Promise((resolve) => setTimeout(resolve, 5000)) 
+        ]);
+        console.log('[provider] ✅ Provider destroyed successfully.');
+        provider = null; 
+      }
+
+
+      // 🚀 Step 3: Restart listeners
       const gameContractEvents = require('../listeners/listeners').listenForGameContractEvents;
       if (typeof gameContractEvents === 'function') {
         console.log('[provider] 🚀 Restarting listeners...');
-        await gameContractEvents(network); // Restart the listeners for the given network
+        await gameContractEvents(network); // Restart listeners for the given network
       }
 
     } catch (error) {
@@ -224,18 +222,38 @@ function handleWebSocketError(error) {
   console.error('[networkUtils] ⚠️ WebSocket error:', error.message);
 }
 
-async function cleanUpProvider(provider) {
-  try {
-    console.log('[provider] 🔥 Cleaning up provider...');
-    if (provider) {
-      await provider.destroy(); // ✅ Ethers v6 method to destroy provider
-    }
-    if (pingInterval) clearInterval(pingInterval);
-    console.log('[provider] ✅ Provider and ping cleaned up successfully');
-  } catch (error) {
-    console.error('[provider] ❌ Failed to clean up provider:', error);
-  }
-}
+// async function cleanUpProvider(provider) {
+//   try {
+//     console.log('[provider] 🔥 Cleaning up provider...');
+
+//     // 🔥 Step 1: Clear WebSocket event listeners
+//     if (provider?.websocket) {
+//       provider.websocket.onopen = null;
+//       provider.websocket.onclose = null;
+//       provider.websocket.onerror = null;
+//       provider.websocket.close(); // 🚀 Force close the WebSocket
+//       console.log('[provider] ❌ Cleared all event listeners on WebSocket and force-closed it.');
+//     }
+
+//     // 🔥 Step 2: Properly destroy the provider
+//     if (provider) {
+//       try {
+//         await provider.destroy(); // ✅ Wait for destroy to complete
+//         console.log('[provider] ✅ Provider destroyed successfully.');
+//       } catch (error) {
+//         console.error('[provider] ❌ Error while destroying provider:', error);
+//       }
+//     }
+//   } catch (error) {
+//     console.error('[provider] ❌ Failed to clean up provider:', error);
+//   } finally {
+//     provider = null; // Explicitly clear the reference
+//     console.log('[provider] ✅ Provider reference cleared from memory.');
+//   }
+// }
+
+
+
 
 
 module.exports = {
@@ -243,7 +261,6 @@ module.exports = {
   startEnhancedPing,
   stopPing,
   scheduleReconnection,
-  cleanUpProvider,
   handleNetworkChange,
   handleWebSocketError
 };
