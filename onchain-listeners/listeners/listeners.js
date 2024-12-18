@@ -20,7 +20,9 @@ async function listenForGameContractEvents(network) {
     // 🛑 If we already have a contract, don't re-initialize everything
     if (contract && contract instanceof ethers.Contract) {
       console.warn(' ⚠️ Contract is already running. Skipping re-initialization.');
-      return;
+      contract.removeAllListeners(); // Remove any lingering listeners
+      contract = null; // Set contract to null
+      //return;
     }
 
     console.log(`[listener] 🔥 Starting contract listeners for network: ${network}`);
@@ -30,7 +32,7 @@ async function listenForGameContractEvents(network) {
      if (!CONTRACT_ADDRESS || !WSS_URL || !RPC_URL) {
        throw new Error('❌ Missing contract secrets.');
      }
-     webSocketProvider = await initializeWebSocketProvider(WSS_URL); // Only one provider is initialized
+     webSocketProvider = await initializeWebSocketProvider(WSS_URL, network); // Only one provider is initialized
 
     // 🔥 Step 2: Get contract info from Firestore
     const { contractAddress, abi } = await getContractInfo(network);

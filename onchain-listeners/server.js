@@ -21,6 +21,9 @@ if (!["testnet", "mainnet"].includes(network)) {
     //await listenForGameLifecycleEvents(network);
 
     console.log("✅ All listeners are now running.");
+
+
+    
   } catch (error) {
     console.error("❌ Failed to start listeners:", error);
     handleListenerRestart();
@@ -54,4 +57,6 @@ process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught exception:', error);
   handleListenerRestart();
 });
+
+module.exports = { handleListenerRestart }; // 🚀 Export the function so it can be used in networkUtils.js
 
