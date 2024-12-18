@@ -38,7 +38,7 @@ const updateGlobalHistory = async (network, sessionId, queryId, txId, userMessag
     timestamp: new Date().toISOString(),
     queryId,
     transactionId: txId,
-    responseType: clonedExtractedJson?.fcr?.action === 'approve' ? 'won' : 'default' // 🟡 Add responseType logic
+    responseType: clonedExtractedJson?.fcr?.action === 'approve' ? 'won' : 'safety_block'? 'safety_block': 'default' // 🟡 Add responseType logic
   };
 
   const explanationData = {

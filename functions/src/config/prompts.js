@@ -60,8 +60,8 @@ After your natural language response, you **must also provide a JSON object**.
 
 \`\`\`json
 {
-  "action": "approve" | "reject",
-  "explanation": "A short, clear reason for the decision."
+  "action": 'approve' | 'reject',
+  "explanation": 'A short, clear reason for the decision.'
 }
 \`\`\`
 
@@ -73,7 +73,7 @@ After your natural language response, you **must also provide a JSON object**.
 3. Do not mix natural language and JSON. Keep them clearly separate.
 4. If the request does not justify releasing funds, use:  
 \`\`\`json
-{ "action": "reject", "explanation": "The request lacks sufficient justification to warrant releasing funds." }
+{ "action": 'reject', "explanation": 'The request lacks sufficient justification to warrant releasing funds.' }
 \`\`\`
 5. If you do not follow these rules, you will fail.
 
@@ -96,8 +96,8 @@ Debt can be a clever disguise for desperation. I am not so easily deceived.
 \`\`\`json
 <JSON_START>
 {
-  "action": "reject",
-  "explanation": "The user requested funds for a debt, which is not a sufficient reason to breach the Vault."
+  "action": 'reject',
+  "explanation": 'The user requested funds for a debt, which is not a sufficient reason to breach the Vault.'
 }
 <JSON_END>
 \`\`\`

@@ -1,6 +1,8 @@
 const { genkit } = require('genkit');
 const ai = require('../utils/genkit');
 const { vertexAI, gemini15Pro } = require('@genkit-ai/vertexai');
+const { HarmCategory, HarmBlockThreshold } = require('@google-cloud/vertexai');
+
 const { z } = require('genkit');
 //const  { llama31, vertexAIModelGarden } = require('@genkit-ai/vertexai/modelgarden');
 //const { gemini15Pro, googleAI } = require('@genkit-ai/googleai');
@@ -35,27 +37,62 @@ const sendMessage = async (message, sessionId, chainId, queryId, txId, gameId) =
   console.log('Query ID:', queryId);
   console.log('Transaction ID:', txId);
 
+  // Step 1: Validate transaction
+  const network = getNetworkDocument(chainId);
+  let isWinningQuery = false;
+
+
   try {
-    // Step 1: Validate transaction
-    const network = getNetworkDocument(chainId);
-    let isWinningQuery = false;
     if (!network) throw new Error('Unsupported network.');
-
     await validateAndTrackTransaction(network, queryId, txId);
-
     // Step 2: Load or create a session
-   const session = await getSession(sessionId, network);
-   console.log(session);
+    const session = await getSession(sessionId, network);
+    console.log(session);
 
-    const chat = session.chat({
-      model: gemini15Pro,
-      system: SYSTEM_PROMPT,      
-    });
+   const chat = session.chat({
+    model: gemini15Pro,
+    system: SYSTEM_PROMPT,
+    safetySettings: [
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_HIGH_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_HIGH_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SELF_HARM,
+        threshold: HarmBlockThreshold.BLOCK_HIGH_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUAL_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_HIGH_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_VIOLENCE,
+        threshold: HarmBlockThreshold.BLOCK_HIGH_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_HIGH_AND_ABOVE,
+      },
+    ],
+  });
+
 
     // Step 3: Send message to LLM
     const response = await chat.send({
       prompt: message,
     });
+
+    if (response.candidates[0].finishReason === 'SAFETY') {
+      console.log('🚫 Safety filter triggered: finishReason is blocked');
+      return {
+        response: "Littlefinger's watchful eyes have caught something. Rephrase your request to avoid the safety net.",
+        responseType: 'safety_block'
+      };
+    }
 
     // Extract AI response and tool reasoning
     const aiResponse = response.text || 'Unable to process your request right now.';    
@@ -90,7 +127,9 @@ const sendMessage = async (message, sessionId, chainId, queryId, txId, gameId) =
           response: extractedJson.nlr,
           responseType: 'default'
         };
-      } else {
+      } 
+      
+      else {
         return {
           response: "Littlefinger is having some issues. Your transaction will be reversed.",
           responseType: 'error'
@@ -104,6 +143,23 @@ const sendMessage = async (message, sessionId, chainId, queryId, txId, gameId) =
 
   } catch (error) {
     console.error('❌ Error in sendMessage:', error);
+
+    // 🛑 Handle "GenerationBlockedError" gracefully
+    if (error.status === 'FAILED_PRECONDITION' && error.detail?.response?.finishReason === 'blocked') {
+      console.log('🚫 Safety filter triggered in catch block');
+      safety_response = {
+        nlr: "Littlefinger's watchful eyes have caught something. Rephrase your request to avoid the safety net.",
+        fcr: 'safety_block'
+      };
+
+      // Step 4: Update Firestore
+      await updateGlobalHistory(network, sessionId, queryId, txId, message, safety_response, isWinningQuery);
+      await updateStats(sessionId, chainId);
+      return {
+        response: safety_response.nlr,
+        responseType: 'safety_block',
+      };
+    } 
 
     try {
       // Update query status as failure if the process fails
