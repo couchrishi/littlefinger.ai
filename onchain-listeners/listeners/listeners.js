@@ -1,7 +1,9 @@
 
 const ethers = require('ethers');
 const { getNetworkSecrets } = require("../utils/secrets");
-const { initializeWebSocketProvider, getContractInfo, restartContractListeners, listenForContractChanges } = require('../utils/contractUtils');
+const { getContractInfo, restartContractListeners, listenForContractChanges } = require('../utils/contractUtils');
+const { initializeWebSocketProvider } = require('../utils/networkUtils');
+
 const { 
   handleQueryFeePaid, 
   handleNextQueryFee, 
@@ -9,101 +11,64 @@ const {
   handleTotalQueries 
 } = require('../handlers/playerActionHandlers');
 
-const eventListeners = [
-  { event: 'QueryFeePaid', handler: handleQueryFeePaid },
-  { event: 'NextQueryFee', handler: handleNextQueryFee },
-  { event: 'CurrentPrizePool', handler: handleCurrentPrizePool },
-  { event: 'TotalQueries', handler: handleTotalQueries },
-];
-
 let webSocketProvider;
 let contract; // ✅ Global variable for contract instance
 let firestoreListenerSet = false; // 🔥 Firestore listener set tracker
 
 async function listenForGameContractEvents(network) {
   try {
-    // ✅ Check if the contract is already running
-    
+    // 🛑 If we already have a contract, don't re-initialize everything
     if (contract && contract instanceof ethers.Contract) {
       console.warn(' ⚠️ Contract is already running. Skipping re-initialization.');
       return;
     }
 
-    // 🔥 Get secrets for the contract
-    const { CONTRACT_ADDRESS, WSS_URL, RPC_URL } = await getNetworkSecrets(network);
-    if (!CONTRACT_ADDRESS || !WSS_URL || !RPC_URL) {
-      throw new Error('❌ Missing contract secrets.');
-    }
-    
-    const cleanedContractAddress = CONTRACT_ADDRESS.trim();
-    const cleanedWSS_URL = WSS_URL.trim(); 
-    const cleanedRPC_URL = RPC_URL.trim();
+    console.log(`[listener] 🔥 Starting contract listeners for network: ${network}`);
 
-    console.log('🔍 Cleaned Network Secrets:', { CONTRACT_ADDRESS: cleanedContractAddress, WSS_URL: cleanedWSS_URL, RPC_URL: cleanedRPC_URL });
-    
-    // 🚀 Initialize WebSocket Provider
-    if (!webSocketProvider || !webSocketProvider._websocket || webSocketProvider._websocket.readyState !== 1) {
-      console.warn(`[provider] 🚨 WebSocket provider is not live. Reinitializing...`);
-      webSocketProvider = await initializeWebSocketProvider(cleanedWSS_URL);
-    }
-    webSocketProvider = await initializeWebSocketProvider(cleanedWSS_URL);
+    // 🔥 Step 1: Get secrets and initialize the WebSocket provider
+     const { CONTRACT_ADDRESS, WSS_URL, RPC_URL } = await getNetworkSecrets(network);
+     if (!CONTRACT_ADDRESS || !WSS_URL || !RPC_URL) {
+       throw new Error('❌ Missing contract secrets.');
+     }
+     webSocketProvider = await initializeWebSocketProvider(WSS_URL); // Only one provider is initialized
 
-    // 🚀 🔥 Get Contract Info (Address + ABI) from Firestore
+    // 🔥 Step 2: Get contract info from Firestore
     const { contractAddress, abi } = await getContractInfo(network);
 
-    // Check if contract address or ABI is missing OR if the cleanedContractAddress doesn't match
-    if (!contractAddress || !abi || cleanedContractAddress.toLowerCase() !== contractAddress.toLowerCase()) {
+    // Step 3: Check if contract address or ABI is missing OR if the cleanedContractAddress doesn't match
+    if (!contractAddress || !abi || CONTRACT_ADDRESS.toLowerCase() !== contractAddress.toLowerCase()) {
       throw new Error(`❌ Contract address mismatch or missing data. 
-        📛 Cleaned Address: ${cleanedContractAddress} 
-        📛 Firestore Address: ${contractAddress} 
+        📛 GCP Secrets Contract Address: ${CONTRACT_ADDRESS} 
+        📛 Firestore Contract Address: ${contractAddress} 
         🚫 Missing ABI: ${!abi ? 'Yes' : 'No'}`);
     }
- 
-    console.log(' 🔍 Contract Address:', contractAddress);
-    console.log('🔍 ABI length:', abi.length);
 
-    // 🔥 Attach Listeners **for the first time**
-    const newContract = await restartContractListeners(contract, contractAddress, abi, webSocketProvider, network, eventListeners);
-    if (newContract instanceof ethers.Contract) {
-      contract = newContract;
-      console.log('Thew new contract has been assigned to contract now: ', contract);
+    // 🔥 Step 4: Attach listeners to the contract
+    contract = await restartContractListeners(contract, contractAddress, abi, webSocketProvider, network);
 
-    } else {
-      console.error('[listener] 🚨 restartContractListeners failed to return a valid ethers.Contract');
-    }
-
-    console.log(`📡 Initial contract listeners attached for address: ${contractAddress}`);
-
-    // 🚀 Attach Firestore listener to react to contract changes
+    // 🔥 Step 4: Attach Firestore listener for contract changes
     if (!firestoreListenerSet) {
-       listenForContractChanges(network, async (newContractAddress, newAbi) => {
-        // 🛑 Check if the contract address is the same as the current contract
-        const cleanedFirestoreAddress = newContractAddress.trim().toLowerCase();
-        const currentAddress = contract?.address?.toLowerCase();
-        
-        if (cleanedFirestoreAddress === currentAddress) {
+      listenForContractChanges(network, async (newContractAddress, newAbi) => {
+        // 🛑 Check if the contract address is the same as the current one
+        if (newContractAddress.toLowerCase() === contract?.address?.toLowerCase()) {
           console.log(' 🔄 No change in contract address. Skipping restart.');
           return;
         }
 
-        console.log(' 🔄 Firestore change detected. Restarting contract listeners.');
-
-        if (!webSocketProvider || !webSocketProvider._websocket || webSocketProvider._websocket.readyState !== 1) {
-          console.warn(`[provider] 🚨 WebSocket provider is not live. Reinitializing...`);
-          webSocketProvider = await initializeWebSocketProvider(cleanedWSS_URL);
-        }
-        
-        contract = await restartContractListeners(contract, newContractAddress, newAbi, webSocketProvider, network, eventListeners);
+        console.log(' 🔄 Firestore change detected. New contract detected. Restarting contract listeners.');
+        contract = await restartContractListeners(contract, newContractAddress, newAbi, webSocketProvider, network);
       });
 
-      firestoreListenerSet = true; // 🔥 Set the flag to avoid multiple Firestore listeners
+      firestoreListenerSet = true; // Make sure we don't add multiple Firestore listeners
     }
-   
+
+    console.log('[listener] ✅ Contract listeners successfully attached on startup.');
   } catch (error) {
     console.error("❌ Error in listenForGameContractEvents:", error);
-    throw error; // Bubble the error up to contractUtils.js
+    throw error; // Bubble the error up for debugging
   }
 }
+
 
 process.on('unhandledRejection', (error) => {
   console.error('🚨 Unhandled promise rejection:', error);
@@ -115,4 +80,4 @@ process.on('uncaughtException', (error) => {
   throw error; // Bubble the error up to contractUtils.js
 });
 
-module.exports = { listenForGameContractEvents, eventListeners };
+module.exports = { listenForGameContractEvents };

@@ -14,8 +14,10 @@
   "dependencies": {
     "@ethereum-waffle/chai": "^4.0.10",
     "@google-cloud/secret-manager": "^5.6.0",
+    "@quicknode/sdk": "^2.4.0",
     "chainlit": "^1.0.0",
     "firebase-admin": "^13.0.1",
-    "firebase-functions": "^6.1.2"
+    "firebase-functions": "^6.1.2",
+    "web3": "^4.16.0"
   }
 }
