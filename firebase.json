@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "littlefinger-ai",
+    "site": "saib-ai-playground",
     "public": "frontend/build",
     "github": {
       "repo": "couchrishi/littlefinger.ai",
