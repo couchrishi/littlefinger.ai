@@ -16,3 +16,4 @@ EXPOSE 8080
 
 # Start the function framework
 CMD ["npx", "firebase-functions-framework", "--target", "chatWithAI"]
+#CMD ["npx", "@google-cloud/functions-framework", "--target", "chatWithAI"]
