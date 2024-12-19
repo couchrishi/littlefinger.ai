@@ -3,21 +3,21 @@ name: Deploy to Firebase Hosting
 on:
   push:
     branches:
-      - main # Change this if you want to deploy from a different branch
+      - main
     paths:
       - 'frontend/**'
-      - '.github/workflows/**' # Also track changes in the workflows folder
+      - '.github/workflows/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the code from the repo
+      # Step 1: Checkout the repository code
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Step 2: Set up Node.js
+      # Step 2: Set up Node.js environment
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
@@ -30,13 +30,15 @@ jobs:
       # Step 4: Authenticate using Service Account
       - name: Authenticate with Service Account
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          echo $GOOGLE_APPLICATION_CREDENTIALS > $HOME/service-account.json
+          echo $FIREBASE_SERVICE_ACCOUNT > $HOME/service-account.json
           export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
 
       # Step 5: Deploy to Firebase Hosting
       - name: Deploy to Firebase Hosting
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: firebase deploy --only hosting
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/service-account.json
+        run: |
+          set -e
+          firebase deploy --only hosting
