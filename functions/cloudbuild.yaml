@@ -24,6 +24,7 @@ steps:
           --region $_REGION \
           --service-account $_SERVICE_ACCOUNT \
           --runtime nodejs18 \
+          --source functions \
           --trigger-http \
           --allow-unauthenticated
 

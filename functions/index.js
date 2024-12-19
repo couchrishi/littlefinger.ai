@@ -2,9 +2,9 @@ const functions = require("firebase-functions");
 const cors = require('cors'); 
 const chat = require("./src/ai/chat");
 
-const corsMiddleware = cors({ 
-  origin: true, 
-  methods: ['GET', 'POST', 'OPTIONS'], 
+const corsMiddleware = cors({
+  origin: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 });
 

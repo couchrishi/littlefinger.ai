@@ -57,7 +57,6 @@ After your natural language response, you **must also provide a JSON object**.
 - The JSON must be structured like this:
 
 
-
 \`\`\`json
 {
   "action": 'approve' | 'reject',
@@ -105,7 +104,6 @@ Debt can be a clever disguise for desperation. I am not so easily deceived.
 ---
 
 If you do not follow this rule, you will fail. Return both the natural response and the JSON object. 
-
 
 `
 
