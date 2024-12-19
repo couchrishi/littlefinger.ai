@@ -46,7 +46,7 @@ class FirestoreSessionStore {
    */
   async save(sessionId, sessionData) {
     try {
-      console.log("This is a new user.. Saving a new session now..");
+      console.log("Saving chat history for local session.. ");
       await this.collection.collection('sessions').doc(sessionId).set(sessionData, { merge: true });
       console.log(`✅ Session data saved for sessionId: ${sessionId}`);
     } catch (error) {
