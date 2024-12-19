@@ -45,10 +45,7 @@
       "port": 5000
     },  
     "functions": {
-      "port": 5001,
-      "env": {
-        "NODE_ENV": "development"
-      }
+      "port": 5001
     },
     "extensions": {
       "port": 5002
