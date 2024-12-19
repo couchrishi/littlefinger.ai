@@ -14,6 +14,7 @@
   "main": "index.js",
   "dependencies": {
     "@genkit-ai/vertexai": "^0.9.6",
+    "@google-cloud/functions-framework": "^3.4.3",
     "alchemy-sdk": "^3.5.0",
     "cors": "^2.8.5",
     "ethers": "^6.13.4",
