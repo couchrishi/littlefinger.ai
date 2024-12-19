@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "saib-ai-playground"
+  },
+  "targets": {
+    "saib-ai-playground": {
+      "hosting": {
+        "default": [
+          "littlefinger-ai"
+        ]
+      }
+    }
   }
 }

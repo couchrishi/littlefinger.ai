@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "littlefinger-ai",
     "public": "frontend/build",
     "github": {
       "repo": "couchrishi/littlefinger.ai",
