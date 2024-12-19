@@ -27,13 +27,15 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      # Step 4: Authenticate using Service Account
+      # Step 4: Authenticate with Service Account
       - name: Authenticate with Service Account
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          echo $FIREBASE_SERVICE_ACCOUNT > $HOME/service-account.json
+          echo "$FIREBASE_SERVICE_ACCOUNT" > $HOME/service-account.json
           export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
+          echo "Service account credentials written to $HOME/service-account.json"
+          cat $HOME/service-account.json | jq .client_email
 
       # Step 5: Deploy to Firebase Hosting
       - name: Deploy to Firebase Hosting
