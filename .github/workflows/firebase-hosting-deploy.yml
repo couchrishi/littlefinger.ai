@@ -9,38 +9,59 @@ on:
       - '.github/workflows/**'
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: google-application-credentials.json
 
     steps:
-      # Step 1: Checkout the repository code
-      - name: Checkout code
+      # Step 1: Checkout the repository
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
-      # Step 2: Set up Node.js environment
+      # Step 2: Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '18'
 
-      # Step 3: Install Firebase CLI
+      # Step 3: Cache dependencies (optional but good for speed)
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/firebase
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Step 4: Install project dependencies (frontend)
+      - name: Install Dependencies
+        run: npm ci
+
+      # Step 5: Install Firebase CLI
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      # Step 4: Authenticate with Service Account
-      - name: Authenticate with Service Account
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      # Step 6: Decode and prepare Google Application Credentials
+      - name: Prepare Google Application Credentials
+        shell: bash
         run: |
-          echo "$FIREBASE_SERVICE_ACCOUNT" > $HOME/service-account.json
-          export GOOGLE_APPLICATION_CREDENTIALS=$HOME/service-account.json
-          echo "Service account credentials written to $HOME/service-account.json"
-          cat $HOME/service-account.json | jq .client_email
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" | base64 --decode > "google-application-credentials.json"
+          echo "Service account credentials written to google-application-credentials.json"
+          cat google-application-credentials.json | jq .client_email
 
-      # Step 5: Deploy to Firebase Hosting
+      # Step 7: Deploy to Firebase Hosting
       - name: Deploy to Firebase Hosting
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/service-account.json
+          GOOGLE_APPLICATION_CREDENTIALS: google-application-credentials.json
         run: |
           set -e
           firebase deploy --only hosting
+
+      # Step 8: Remove the credentials file for security
+      - name: Remove credentials file
+        if: success() || failure()
+        run: |
+          rm google-application-credentials.json
