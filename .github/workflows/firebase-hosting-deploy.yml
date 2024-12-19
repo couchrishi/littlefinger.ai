@@ -3,7 +3,7 @@ name: Deploy to Firebase Hosting
 on:
   push:
     branches:
-      - main ## Change this if you want to deploy from a different branch ###
+      - main ## Change this if you want to deploy from a different branch ####
     paths:
         - 'frontend/**'
         - '.github/workflows/**' # Also track changes in the workflows folder##
