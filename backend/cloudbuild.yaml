@@ -30,16 +30,16 @@ steps:
       - |
         npm install
 
-  # Step 4: Build the application (If you have a build process)
-  - name: 'node:18'
-    id: 'Build Application'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        npm run build  # Replace with your build command if you have one
+  # # Step 4: Build the application (If you have a build process)
+  # - name: 'node:18'
+  #   id: 'Build Application'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       npm run build  # Replace with your build command if you have one
 
-  # Step 5: Deploy to Cloud Run using the built image
+  # Step 4: Deploy to Cloud Run using the built image
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'Deploy to Cloud Run'
     entrypoint: 'bash'
