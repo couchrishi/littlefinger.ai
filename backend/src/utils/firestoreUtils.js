@@ -135,7 +135,8 @@ async function updateGameStatusToWon(network) {
           gameID: gameID,
           gameStatus: {
             status: "won",
-            idleSince: Timestamp.fromMillis(currentTimestampMillis),
+            //idleSince: Timestamp.fromMillis(currentTimestampMillis),
+            idleSince: currentTimestampMillis,
           },
         };
   

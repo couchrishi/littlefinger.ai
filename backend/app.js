@@ -2,9 +2,14 @@
 
 
 const express = require('express');
+const cors = require('cors'); 
 const chatRoutes = require('./src/routes/chat');
 
+
 const app = express();
+
+// This will allow all origins by default
+app.use(cors()); 
 
 // Middleware for parsing JSON
 app.use(express.json());
@@ -13,7 +18,7 @@ app.use(express.json());
 app.use('/api', chatRoutes);
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
