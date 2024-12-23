@@ -1,0 +1,64 @@
+options:
+  logging: "CLOUD_LOGGING_ONLY"
+
+steps:
+  # Step 1: Build the Docker Image #
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Docker Image'
+    args:
+      - 'build'
+      - '--no-cache'  # Clear the cache
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA'
+      - '-f'
+      - 'onchain-listeners/Dockerfile'  # Specify the path to the Dockerfile
+      - 'onchain-listeners'  # Set the context to the backend folder
+
+  # Step 2: Push the Docker Image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Docker Image'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA'
+
+  # Step 3: Install dependencies (if needed for building or testing)
+  - name: 'node:18'
+    id: 'Install Dependencies'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm install
+
+  # # Step 4: Build the application (If you have a build process)
+  # - name: 'node:18'
+  #   id: 'Build Application'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       npm run build  # Replace with your build command if you have one
+
+  # Step 4: Deploy to Cloud Run using the built image
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy to Cloud Run'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy $_SERVICE_NAME \
+          --project $_PROJECT_ID \
+          --region $_REGION \
+          --image gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA \
+          --service-account $_SERVICE_ACCOUNT \
+          --allow-unauthenticated \
+          --min-instances 1 \
+          --set-env-vars="NODE_ENV=production"
+
+substitutions:
+  _PROJECT_ID: "$PROJECT_ID"
+  _SERVICE_NAME: "littlefinger-listeners" ## Your Cloud Run service name #
+  _REGION: "us-central1"
+  _SERVICE_ACCOUNT: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
+
+timeout: '1200s'

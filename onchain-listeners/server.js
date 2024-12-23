@@ -1,7 +1,8 @@
 const { listenForGameContractEvents } = require("./listeners/listeners");
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 8080; // Port required by Cloud Run
+// const PORT = process.env.PORT || 8080; // Port required by Cloud Run
+const PORT = 8080;
 const network = process.argv[2] || "testnet";
 
 app.get('/', (req, res) => res.send('🎉 On-chain listeners are running!'));
