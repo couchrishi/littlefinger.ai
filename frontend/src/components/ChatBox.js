@@ -140,10 +140,10 @@ export default function ChatBox() {
 
     console.log("🚀 Component Mounted: Setting up Firestore listeners");
 
-    if (!connectedAccount || !currentChainId || !SUPPORTED_NETWORKS[currentChainId]) {
-      dispatch(setChatHistory([]));
-      return;
-    }
+    // if (!connectedAccount || !currentChainId || !SUPPORTED_NETWORKS[currentChainId]) {
+    //   dispatch(setChatHistory([]));
+    //   return;
+    // }
 
     const networkKey = currentChainId === "0x89" ? "mainnet" : "testnet";
 

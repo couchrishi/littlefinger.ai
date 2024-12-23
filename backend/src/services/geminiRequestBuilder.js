@@ -119,7 +119,7 @@ function buildGeminiRequestBodyOpenAI(message, sessionMessages) {
     ],
     tools: functionDeclarationsOpenAI,
     tool_config: toolConfigOpenAI,
-    // tool_choice: 'auto'
+    //tool_choice: 'auto'
     // safety_settings: [
     //   {
     //     category: "HARM_CATEGORY_DANGEROUS_CONTENT",
