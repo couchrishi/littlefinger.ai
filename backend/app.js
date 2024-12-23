@@ -10,7 +10,7 @@ app.use(express.json());
 // This will allow all origins by default
 app.use(cors());
 
-// Health check endpoint for Cloud Run
+// ** Health check endpoint for Cloud Run
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
