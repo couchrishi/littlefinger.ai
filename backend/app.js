@@ -19,7 +19,8 @@ app.get('/health', (req, res) => {
 app.use('/api', chatRoutes);
 
 // Start the server on port 8080
-const PORT = 8080;
+// const PORT = 8080;
+const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }).on('error', (err) => {

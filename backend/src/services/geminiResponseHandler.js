@@ -95,6 +95,9 @@ async function handleResponseOpenAI(
         await updateGameStatusToWon(network, "won"); // Assuming you want to update the status to 'won'
       } else if (functionCall.name === "rejectTransfer") {
         responseType = "reject";
+        naturalLanguageResponseReject = aiResponse.content;
+        const pythonCodePattern = /```python[\s\S]*?```/g;
+        naturalLanguageResponseReject = naturalLanguageResponseReject.replace(pythonCodePattern, '').trim();
       }
 
       // Extract explanation from function arguments
@@ -128,7 +131,7 @@ async function handleResponseOpenAI(
         response:
           responseType === "approve"
             ? "Congratulations! You have won."
-            : aiResponse.content || "No response from Gemini",
+            : naturalLanguageResponseReject || "No response from Gemini",
         responseType: responseType,
       };
       
@@ -220,7 +223,7 @@ async function handleResponseNative(
   let isWinningQuery = false;
   let responseType = "default";
   let explanation = "";
-  let messageText = "No response from Gemini";
+  let messageText = aiResponse.content || "No response from Gemini";
 
   // Check if the response is a function call
   if (aiResponse.parts && aiResponse.parts.length > 0 && aiResponse.parts[0].functionCall) {
