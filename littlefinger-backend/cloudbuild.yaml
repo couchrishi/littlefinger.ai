@@ -1,6 +1,3 @@
-options:
-  logging: "CLOUD_LOGGING_ONLY"
-
 steps:
   # Step 1: Build the Docker Image
   - name: 'gcr.io/cloud-builders/docker'
@@ -9,7 +6,9 @@ steps:
       - 'build'
       - '-t'
       - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA'
-      - '.'
+      - '-f'
+      - './littlefinger-backend/Dockerfile'  # Specify the path to Dockerfile in littlefinger-backend
+      - './littlefinger-backend'  # Specify the build context directory
 
   # Step 2: Push the Docker Image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -53,7 +52,7 @@ steps:
 
 substitutions:
   _PROJECT_ID: "$PROJECT_ID"
-  _SERVICE_NAME: "littlefinger-backend-isolated" # Your Cloud Run service name
+  _SERVICE_NAME: "littlefinger-backend-isolated"  # Your Cloud Run service name
   _REGION: "us-central1"
   _SERVICE_ACCOUNT: "saib-ai-playground-sa@saib-ai-playground.iam.gserviceaccount.com"
 
