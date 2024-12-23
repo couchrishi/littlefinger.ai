@@ -149,7 +149,9 @@ export const listenForGameState = (network, contractAddress, callback) => {
           const serializableGameStatus = {
             ...data.gameStatus,
             startedAt: convertTimestampToISO(data.gameStatus?.startedAt) || 'N/A',
-            idleSince: convertTimestampToISO(data.gameStatus?.idleSince) || 'N/A',
+            //idleSince: convertTimestampToISO(data.gameStatus?.idleSince) || 'N/A',
+            idleSince: data.gameStatus?.idleSince || 'N/A',
+
           };
           console.log(`🎮 Game status updated for network: ${network}, contract: ${contractAddress}`, serializableGameStatus);
           callback(serializableGameStatus);

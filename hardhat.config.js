@@ -8,7 +8,7 @@ require("@nomiclabs/hardhat-etherscan");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 
-console.log(`🔍 PRIVATE_KEY:`, process.env.PRIVATE_KEY ? "Loaded ✅" : "Not Loaded ❌");
+//console.log(`🔍 PRIVATE_KEY:`, process.env.PRIVATE_KEY ? "Loaded ✅" : "Not Loaded ❌");
 //console.log(`🔍 RPC_URL:`, process.env.RPC_URL ? "Loaded ✅" : "Not Loaded ❌");
 
 

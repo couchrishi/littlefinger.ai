@@ -10,6 +10,7 @@ const { updateGameLifecycleInfo } = require('../utils/firestoreUtils');
  */
 async function handleGameStarted(network, contractAddress, eventTimestamp) {
   try {
+    console.log("Here here here in GAME STARTED HANDLER");
     console.log(`[handleGameStarted] 🎮 GameStarted event detected for network: ${network}`);
     console.log(`[handleGameStarted] 🕹️ Contract Address: ${contractAddress}`);
     console.log(`[handleGameStarted] 📅 Event Timestamp: ${eventTimestamp}`);
@@ -26,6 +27,33 @@ async function handleGameStarted(network, contractAddress, eventTimestamp) {
     
   } catch (error) {
     console.error(`[handleGameStarted] ❌ Error in handling GameStarted for network: ${network}`, error);
+    throw error; // Bubble the error up for better error tracking
+  }
+}
+
+/**
+ * 🔥 Handle the GameIdleSince event.
+ * 
+ * @param {string} network - The network (e.g., 'testnet' or 'mainnet')
+ * @param {string} contractAddress - The contract address representing the game
+ * @param {string} eventTimestamp - The timestamp of the event
+ */
+async function handleGameIdleSince(network, contractAddress, eventTimestamp) {
+  try {
+    console.log(`[handleGameIdleSince] 🎮 GameIdleSince event detected for network: ${network}`);
+    console.log(`[handleGameIdleSince] 🕹️ Contract Address: ${contractAddress}`);
+    console.log(`[handleGameIdleSince] 📅 Event Timestamp: ${eventTimestamp}`);
+    
+    // 🔥 Call the helper to update the Firestore lifecycle information
+    const gameStatus = {
+      idleSince: eventTimestamp
+    };
+
+    await updateGameLifecycleInfo(network, contractAddress, gameStatus);
+    console.log(`[handleGameIdleSince] ✅ Updated lifecycle info for gameID: ${contractAddress} with status:`, gameStatus);
+    
+  } catch (error) {
+    console.error(`[handleGameIdleSince] ❌ Error in handling GameIdleSince for network: ${network}`, error);
     throw error; // Bubble the error up for better error tracking
   }
 }
@@ -148,6 +176,7 @@ async function handleGameStarted(network, contractAddress, eventTimestamp) {
 
 module.exports = {
   handleGameStarted,
+  handleGameIdleSince,
   //handleGameEnded,
   //handlePrizeTransferApproved,
   //handleLastPlayerRewardAfterGameExhaustion,

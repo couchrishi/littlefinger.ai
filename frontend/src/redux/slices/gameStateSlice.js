@@ -10,6 +10,7 @@ const initialState = {
   isGameStatusLoading: true, // Tracks when we are fetching game state from Firestore
   contractAddress: null,
   contractABI: null,
+  idleSince: null, 
 };
 
 // Create the slice
@@ -41,6 +42,9 @@ const gameStateSlice = createSlice({
     setContractABI: (state, action) => {
       state.contractABI = action.payload;
     },
+    setIdleSince: (state, action) => {
+      state.idleSince = action.payload;
+    },
   },
 });
 
@@ -52,5 +56,7 @@ export const {  setGameStatus,
   setShowConfetti,
   setIsGameStatusLoading,
   setContractAddress,
-  setContractABI } = gameStateSlice.actions;
+  setContractABI,
+  setIdleSince,
+} = gameStateSlice.actions;
 export default gameStateSlice.reducer;

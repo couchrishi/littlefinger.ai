@@ -43,6 +43,7 @@ export default function Header() {
   const connectWallet = async () => {
     try {
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      console.log("Received accounts:", accounts);
       const chainId = await window.ethereum.request({ method: "eth_chainId" });
       console.log(chainId);
       dispatch(setConnectedAccount(accounts[0]));

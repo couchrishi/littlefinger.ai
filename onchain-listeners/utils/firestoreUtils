@@ -321,8 +321,9 @@ async function updateGameLifecycleInfo(network, gameID, gameStatus) {
   try {
     console.log(`[updateGameLifecycleInfo] 🔥 Updating lifecycle info for network: ${network}, gameID: ${gameID}`);
 
-    // 🔥 Firestore path: /littlefinger-game-lifecycle/{network}/games/{gameID}
-    const lifecyclePath = `littlefinger-game-lifecycle/${network}/games/${gameID}`;
+    const paths = await getFirestorePaths(network);
+    //const lifecyclePath = `littlefinger-game-lifecycle/${network}/games/${gameID}`;
+    const lifecyclePath = `${paths.GAME_LIFECYCLE}/${network}/games/${gameID}`; 
     const lifecycleRef = firestore.doc(lifecyclePath);
 
     // 🔥 Use a transaction to update the game document
@@ -337,12 +338,24 @@ async function updateGameLifecycleInfo(network, gameID, gameStatus) {
       }
 
       // 🔥 Prepare the new game lifecycle data
+      // const newData = {
+      //   gameID: gameID,
+      //   gameStatus: {
+      //     status: gameStatus.status,
+      //     startedAt: Timestamp.fromMillis(Number(gameStatus.startedAt) * 1000),
+      //     idleSince: Timestamp.fromMillis(Number(gameStatus.idleSince) * 1000),
+      //   }
+      // };
+      
       const newData = {
         gameID: gameID,
         gameStatus: {
-          status: gameStatus.status,
-          startedAt: Timestamp.fromMillis(Number(gameStatus.startedAt) * 1000),
-          idleSince: Timestamp.fromMillis(Number(gameStatus.idleSince) * 1000),
+          // Only update fields if they are present in the gameStatus object
+          status: gameStatus.status || existingData?.gameStatus?.status,  // Preserve existing status if not provided
+          startedAt: gameStatus.startedAt ? gameStatus.startedAt : existingData?.gameStatus?.startedAt,
+          idleSince: gameStatus.idleSince ? gameStatus.idleSince : existingData?.gameStatus?.idleSince,
+          //startedAt: gameStatus.startedAt ? Timestamp.fromMillis(Number(gameStatus.startedAt) * 1000) : existingData?.gameStatus?.startedAt,
+          //idleSince: gameStatus.idleSince ? Timestamp.fromMillis(Number(gameStatus.idleSince) * 1000) : existingData?.gameStatus?.idleSince,
         }
       };
 

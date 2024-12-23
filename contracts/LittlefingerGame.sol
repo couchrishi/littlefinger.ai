@@ -170,7 +170,7 @@ contract LittlefingerGame {
         }
     }
 
-    // ***** Approve Transfer Function for prize money *******
+    // ***** Approve Transfer Function for prize money *********
     function approveTransfer(address recipient) external onlyOwner {
         if (prizePool() == 0) revert GameExhausted();
         if (recipient == address(0)) revert InvalidRecipient();
@@ -193,7 +193,7 @@ contract LittlefingerGame {
         emit CurrentPrizePool(address(this).balance);
     }
 
-    // Reset Game Logic
+    // Reset Game Logic ***
     function startGame() external payable onlyOwner {
         if (msg.value > 0) {
             emit CurrentPrizePool(address(this).balance);

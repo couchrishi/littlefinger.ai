@@ -9,6 +9,7 @@ const {
 
   const {
     handleGameStarted,
+    handleGameIdleSince,
     handleGameEnded,
     handlePrizeTransferApproved,
     LastPlayerRewardAfterGameExhaustion,
@@ -132,12 +133,23 @@ function listenForContractChanges(network, callback) {
   
       contract.on("GameStarted", async (timestamp, event) => {
           try {
+            console.log("Here here here in GAME STARTED LISTENER");
             console.log("[Game Lifecycle]🔥 GameStarted Event Detected", { timestamp });
-            await handleGameStarted(network, newContractAddress, timestamp, event);
+            await handleGameStarted(network, contractAddress, timestamp, event);
           } catch (error) {
             console.error("❌ Error processing GameStarted event:", error);
           }
         });
+
+      contract.on("GameIdleSince", async (timestamp, event) => {
+          try {
+            console.log("[Game Lifecycle]🔥 GameIdleSince Event Detected", { timestamp });
+            await handleGameIdleSince(network, contractAddress, timestamp, event);
+          } catch (error) {
+            console.error("❌ Error processing GameStarted event:", error);
+          }
+        });
+  
   
       console.log(`[listener] ✅ Contract listeners attached successfully`);
   

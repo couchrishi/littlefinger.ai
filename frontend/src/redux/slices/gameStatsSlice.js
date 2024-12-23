@@ -6,7 +6,7 @@ const initialState = {
   participants: 0,
   breakInAttempts: 0,
   interactionCost: "0.00",
-  usdRate: 0
+  usdRate: 0,
 };
 
 const gameStatsSlice = createSlice({

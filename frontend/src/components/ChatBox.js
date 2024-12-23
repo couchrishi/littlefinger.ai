@@ -27,6 +27,7 @@ import {
 
 import {
   setGameStatus,
+  setIdleSince,
   setWinningMessage,
   setLockOverlay,
   setGameExhaustedMessage,
@@ -163,6 +164,12 @@ export default function ChatBox() {
             (newGameStatus) => {
               console.log("🔥 Listener Active: Game status updated to:", newGameStatus.status);
               dispatch(setGameStatus(newGameStatus.status));
+              
+              // Dispatch the idleSince to Redux
+              if (newGameStatus.idleSince) {
+                console.log("🔥 Listener Active: Game IdleSince updated to:", newGameStatus.idleSince);
+                dispatch(setIdleSince(newGameStatus.idleSince)); // Update idleSince
+              }
             }
           );
         } else {
@@ -288,7 +295,8 @@ export default function ChatBox() {
 
           dispatch(updateMessageStatus({ index: messageIndex, status: "query_submitted" }));
 
-          const response = await fetch(`${config.API_BASE_URL}/chatWithAI`, {
+          //const response = await fetch(`${config.API_BASE_URL}/chatWithAI`, {
+          const response = await fetch(`${config.API_BASE_URL}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -383,7 +391,7 @@ export default function ChatBox() {
 
         {chatHistory.map((msg, index) => {
 
-          const isAI = msg.sender === "Gemini";
+          const isAI = msg.sender === "Gemini" || msg.sender === "model" || msg.sender === "assistant";
           const walletHash = md5(msg.sender);
           const profileColor = `#${walletHash.slice(0, 6)}`;
           const alignmentClass = isAI ? "flex-row text-left" : "flex-row-reverse text-right";
