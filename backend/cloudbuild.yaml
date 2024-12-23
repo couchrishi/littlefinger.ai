@@ -52,6 +52,7 @@ steps:
           --image gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA \
           --service-account $_SERVICE_ACCOUNT \
           --allow-unauthenticated \
+          --min-instances 1 \
           --set-env-vars="NODE_ENV=production"
 
 substitutions:
