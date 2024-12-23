@@ -23,7 +23,7 @@ function App() {
         <Header />
         <main className="container mx-auto p-1 flex flex-wrap items-start">
           <Routes>
-            {/* Home Page */}
+            {/* Home Page ***/}
             <Route
               path="/"
               element={
