@@ -17,6 +17,11 @@ app.use(express.json());
 // Register routes
 app.use('/api', chatRoutes);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Start the server
 //const PORT = process.env.PORT || 3001;
 const PORT = 8080;
