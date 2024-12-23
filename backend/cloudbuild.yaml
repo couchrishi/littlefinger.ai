@@ -46,16 +46,14 @@ steps:
     args:
       - '-c'
       - |
-          gcloud run deploy $_SERVICE_NAME \
-            --project $_PROJECT_ID \
-            --region $_REGION \
-            --image gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA \
-            --service-account $_SERVICE_ACCOUNT \
-            --allow-unauthenticated \
-            --min-instances 1 \
-            --cpu 2 \
-            --memory 4Gi \
-            --set-env-vars="NODE_ENV=production"
+        gcloud run deploy $_SERVICE_NAME \
+          --project $_PROJECT_ID \
+          --region $_REGION \
+          --image gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA \
+          --service-account $_SERVICE_ACCOUNT \
+          --allow-unauthenticated \
+          --min-instances 1 \
+          --set-env-vars="NODE_ENV=production"
 
 substitutions:
   _PROJECT_ID: "$PROJECT_ID"

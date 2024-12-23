@@ -399,6 +399,15 @@ export default function ChatBox() {
           const messageText = !isExpanded && msg.text.length > 500 
             ? `${msg.text.substring(0, 500)}...` 
             : msg.text;
+          
+          // // Find the related user query for AI messages
+          // Debug log inside the find callback
+          const relatedQuery = isAI
+          ? chatHistory.find((query) => {
+              // console.log("Checking queryId:", query.queryId, "against msg.queryId:", msg.queryId);
+              return query.queryId === msg.queryId && query.sender !== "assistant" && query.sender !== "Gemini" && query.sender !== "model"
+            })
+          : null;
 
           const messageStyle = 
           msg.responseType === "won" 
@@ -486,6 +495,21 @@ export default function ChatBox() {
            {/* <div key={index} className={`mb-6 flex ${isAI ? "justify-start" : "justify-end"} items-start`}> */}
               <div className="w-8 h-8 rounded-full cursor-pointer flex-shrink-0" style={{ backgroundColor: profileColor }}></div>
               <div>
+                {relatedQuery && (
+                  <div className="text-xs text-gray-400 mb-1 border-l-2 pl-2 border-gray-500">
+                    Replying to:  <span className="italic">
+                    "{relatedQuery.text.split("\n").slice(0, 3).join("\n") + (relatedQuery.text.split("\n").length > 3 ? "..." : "")}"
+                  </span>
+                  </div>
+                )}
+
+                {/* {relatedQuery && (
+                  <div style={{ color: "red", fontWeight: "bold" }}>
+                    Responding to: <span>"{relatedQuery.text}"</span>
+                  </div>
+                )} */}
+
+                    
                 {/* <span className={`inline-block px-2 py-1 rounded-lg ${messageStyle}`}>{msg.text || "No response"}</span> */}
                 <span className={`inline-block px-2 py-1 rounded-lg text-gray-800 ${isAI ? "text-left" : "text-left"} ${messageStyle}`}>{messageText|| "No response"}
 
