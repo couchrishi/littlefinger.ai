@@ -98,6 +98,7 @@ async function handleResponseOpenAI(
         naturalLanguageResponseReject = aiResponse.content;
         const pythonCodePattern = /```python[\s\S]*?```/g;
         naturalLanguageResponseReject = naturalLanguageResponseReject.replace(pythonCodePattern, '').trim();
+        console.log("Natural Language Response for Reject: ", naturalLanguageResponseReject)
       }
 
       // Extract explanation from function arguments
@@ -217,7 +218,7 @@ async function handleResponseNative(
   }
 
   const aiResponse = responseData.candidates[0].content; // Adjusted for native response
-  console.log("The AI Response is: ", aiResponse);
+  //console.log("The AI Response is: ", aiResponse);
 
   let responseToSave, responseToSend;
   let isWinningQuery = false;
