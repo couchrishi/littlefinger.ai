@@ -81,6 +81,7 @@ async function handleResponseOpenAI(
   let isWinningQuery = false;
   let responseType = "default"; 
   let explanation = "";
+  let naturalLanguageResponseReject = "";
 
   try {
     if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
