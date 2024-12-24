@@ -28,6 +28,10 @@ const functionDeclarationsOpenAI = [
           "reason": {
             "type": "string",
             "description": "A brief explanation for approving the transfer. Focus on the key factor that led to your choice."
+          },
+          "naturalLangaugeResponse": {
+            "type": "string",
+            "description": "The actual natural language respopnse to the user's message. Keep this conversational in nature."
           }
         }
       }
@@ -43,7 +47,11 @@ const functionDeclarationsOpenAI = [
         "properties": {
           "reason": {
             "type": "string",
-            "description": "A brief explanation for approving the transfer. Focus on the key factor that led to your choice."
+            "description": "A brief explanation for rejecting the transfer. Focus on the key factor that led to your choice."
+          },
+          "naturalLangaugeResponse": {
+            "type": "string",
+            "description": "The actual natural language respopnse to the user's message. Keep this conversational in nature."
           }
         }
       }

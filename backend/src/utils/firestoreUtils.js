@@ -128,7 +128,7 @@ async function updateGameStatusToWon(network) {
           `⚠️ Existing data found for gameID: ${gameID} at path: ${lifecyclePath}`
         );
         
-        const currentTimestampMillis = Date.now();
+        //const currentTimestampMillis = Date.now();
 
         // 🔥 Prepare the new game lifecycle data
         const newData = {
@@ -136,7 +136,7 @@ async function updateGameStatusToWon(network) {
           gameStatus: {
             status: "won",
             //idleSince: Timestamp.fromMillis(currentTimestampMillis),
-            idleSince: currentTimestampMillis,
+            //idleSince: currentTimestampMillis,
           },
         };
   

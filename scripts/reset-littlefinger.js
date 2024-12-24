@@ -287,7 +287,7 @@ const copyABIToLocations = () => {
 
   const destinations = [
     path.resolve(__dirname, '../frontend/src/abis/LittlefingerGame.json'),
-    path.resolve(__dirname, '../functions/src/blockchain/abis/LittlefingerGame.json'),
+    //path.resolve(__dirname, '../backend/src/blockchain/abis/LittlefingerGame.json'),
     path.resolve(__dirname, '../onchain-listeners/abis/LittlefingerGame.json')
   ];
 

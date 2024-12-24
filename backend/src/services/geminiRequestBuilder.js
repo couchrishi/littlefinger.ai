@@ -20,7 +20,7 @@ async function sendGeminiRequest(url, data, accessToken) {
         'Content-Type': 'application/json',
       }
     });
-    console.log("Response:", response);
+    //console.log("Response:", response);
     return response.data;
     //return response;
 
@@ -118,8 +118,8 @@ function buildGeminiRequestBodyOpenAI(message, sessionMessages) {
       { role: 'user', content: message } 
     ],
     tools: functionDeclarationsOpenAI,
-    tool_config: toolConfigOpenAI,
-    //tool_choice: 'auto'
+    //tool_config: toolConfigOpenAI,
+    tool_choice: 'auto'
     // safety_settings: [
     //   {
     //     category: "HARM_CATEGORY_DANGEROUS_CONTENT",

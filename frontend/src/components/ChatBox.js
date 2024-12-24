@@ -116,10 +116,11 @@ export default function ChatBox() {
 
     if (gameStatus === "won") {
       // 🎉 When the player wins, disable input, but don't lock the overlay
+      dispatch(setIdleSince(null)); // or setIdleSince(null)
       dispatch(setLockOverlay(false));
       dispatch(setShowConfetti(true));
 
-      setTimeout(() => setShowConfetti(false), 5000); // Show confetti for 5 seconds
+      setTimeout(() => setShowConfetti(false), 2000); // Show confetti for 5 seconds
     } 
     else if (gameStatus === "exhausted") {
       // 🎉 When the game timer expires and the game gets exhausted to closure
