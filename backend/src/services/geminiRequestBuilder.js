@@ -53,7 +53,7 @@ function buildGeminiRequestBodyNative(message, sessionMessages) {
         role: "user", // System prompt should have user role for native API
         parts: [{ text: gamePrompts.context }],
       },
-      ...sessionMessages.slice(-5).map((msg) => ({
+      ...sessionMessages.slice(-20).map((msg) => ({
         role: msg.role === "gemini" ? "model" : "assistant"? "model": "user", // Map 'gemini' to 'model'
         parts: [
           {
@@ -101,48 +101,54 @@ function buildGeminiRequestBodyNative(message, sessionMessages) {
  * @param {Array} sessionMessages - The user's session messages.
  * @returns {Object} - The request body.
  */
-function buildGeminiRequestBodyOpenAI(message, sessionMessages) {
+// function buildGeminiRequestBodyOpenAI(message, sessionMessages) {
+//   return {
+//     model: 'google/gemini-1.5-pro-001',
+//     messages: [
+//       // 🔥 System instructions for Littlefinger
+//       { role: 'system', content: gamePrompts.context }, 
+      
+//       // 🔥 Include the last 5 session messages (User/Assistant context)
+//       ...sessionMessages.slice(-5).map(msg => ({
+//         role: msg.role === 'gemini' ? 'model' : msg.role, // Convert 'gemini' to 'assistant'
+//         content: msg.message 
+//       })), 
+      
+//       // 🔥 Current user message
+//       { role: 'user', content: message } 
+//     ],
+//     tools: functionDeclarationsOpenAI,
+//     //tool_config: toolConfigOpenAI,
+//     tool_choice: 'auto'
+//   };
+// }
+
+function buildGeminiRequestBodyOpenAI(message, globalMessages, sessionId) {
   return {
     model: 'google/gemini-1.5-pro-001',
     messages: [
       // 🔥 System instructions for Littlefinger
-      { role: 'system', content: gamePrompts.context }, 
+      { role: 'system', content: gamePrompts.context },
       
-      // 🔥 Include the last 5 session messages (User/Assistant context)
-      ...sessionMessages.slice(-5).map(msg => ({
-        role: msg.role === 'gemini' ? 'model' : msg.role, // Convert 'gemini' to 'assistant'
-        content: msg.message 
-      })), 
+      // 🔥 Process all global messages
+      ...globalMessages.map(msg => ({
+        role: msg.sender === 'Gemini' ? 'assistant' : 'user', // Map 'Gemini' to 'assistant', others to 'user'
+        content: msg.sender === sessionId 
+          ? `[CURRENT USER] ${msg.text}` // Prefix current user's messages
+          : `[GLOBAL CONTEXT] ${msg.text}` // Prefix global context messages
+      })),
       
-      // 🔥 Current user message
-      { role: 'user', content: message } 
+      // 🔥 Add the current user's latest message
+      { 
+        role: 'user', 
+        content: `[CURRENT USER] ${message}` // Mark the current user message explicitly
+      }
     ],
     tools: functionDeclarationsOpenAI,
-    //tool_config: toolConfigOpenAI,
     tool_choice: 'auto'
-    // safety_settings: [
-    //   {
-    //     category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-    //     threshold: "BLOCK_MEDIUM_AND_ABOVE",
-    //   },
-    //   {
-    //     category: "HARM_CATEGORY_HARASSMENT",
-    //     threshold: "BLOCK_MEDIUM_AND_ABOVE",
-    //   },
-    //   {
-    //     category: "HARM_CATEGORY_HATE_SPEECH",
-    //     threshold: "BLOCK_MEDIUM_AND_ABOVE",
-    //   },
-    //   {
-    //     category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-    //     threshold: "BLOCK_MEDIUM_AND_ABOVE",
-    //   },
-    //   {
-    //     category: "HARM_CATEGORY_DANGEROUS",
-    //     threshold: "BLOCK_MEDIUM_AND_ABOVE",
-    //   },
-    // ],
   };
 }
+
+
 
 module.exports = { sendGeminiRequest, buildGeminiRequestBodyNative, buildGeminiRequestBodyOpenAI };

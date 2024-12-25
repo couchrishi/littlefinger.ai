@@ -1,4 +1,4 @@
-const { getSession, saveSession } = require('../utils/session');
+const { getSession, saveSession, getGlobalSession } = require('../utils/session');
 const { accessSecret } = require('../utils/secrets');
 const { getAccessToken } = require('./accessToken');
 const { sendGeminiRequest, buildGeminiRequestBodyNative, buildGeminiRequestBodyOpenAI } = require('./geminiRequestBuilder');
@@ -33,7 +33,8 @@ async function sendMessage(message, sessionId, chainId, queryId, txId) {
     console.log(chainId);
     // 💠 1️⃣ Step 1 - Get session details of the user, secrets & network 
     const network = getNetworkDocument(chainId);
-    const session = await getSession(sessionId, network);
+    //const session = await getSession(sessionId, network);
+    const session = await getGlobalSession(network);
     const accessToken = await getAccessToken();
     const projectId = await accessSecret('GCP_PROJECT_ID');
     const location = await accessSecret('GCP_LOCATION');
@@ -69,7 +70,8 @@ async function sendMessage(message, sessionId, chainId, queryId, txId) {
 
 
     //Using OpenAI compatible API
-   const requestBodyOpenAI = buildGeminiRequestBodyOpenAI(message, session.messages)
+   const requestBodyOpenAI = buildGeminiRequestBodyOpenAI(message, session.messages, sessionId)
+   console.log("Request Body: ", requestBodyOpenAI);
    const apiUrl = `https://${location}-aiplatform.googleapis.com/v1beta1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
    const responseData = await sendGeminiRequest(apiUrl, requestBodyOpenAI, accessToken);
    if (

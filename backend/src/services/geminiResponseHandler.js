@@ -98,7 +98,7 @@ async function handleResponseOpenAI(
       const naturalLangaugeResponseMatch = aiResponse.refusal.match(naturalLangaugeResponseRegex);
       const reasonMatch = aiResponse.refusal.match(reasonRegex);
     
-      let messageToSend = naturalLangaugeResponseFromFunctionCall = "No response from Littlefinger. Your payment will be reversed.";
+      //let messageToSend = naturalLangaugeResponseFromFunctionCall = "No response from Littlefinger. Your payment will be reversed.";
       let explanation = "Unable to extract reason.";
     
       if (naturalLangaugeResponseMatch && naturalLangaugeResponseMatch[1]) {
@@ -161,31 +161,31 @@ async function handleResponseOpenAI(
           // Ensure that functionCall.arguments is a valid JSON string
           if (typeof functionCall.arguments === "string") {
             const args = JSON.parse(functionCall.arguments);  // Parse the function arguments
-            console.log("Function Call Arguments after JSON Parsing", args);
+            //console.log("Function Call Arguments after JSON Parsing", args);
             
             // Check if 'naturalLangaugeResponse' exists
             if (args.naturalLangaugeResponse) {
               messageToSend = args.naturalLangaugeResponse;
-              console.log("This message needs to be sent: ", messageToSend);
+              //console.log("This message needs to be sent: ", messageToSend);
             } else {
               messageToSend = "Empty response from Littlefinger. He's still processing. Your payment will be reversed.";
-              console.log("This should be the message to be sent: ", messageToSend);
+              //console.log("This should be the message to be sent: ", messageToSend);
             }
           } else {
             messageToSend = "Invalid arguments format.";
-            console.log("Invalid arguments format:", functionCall.arguments);
+            //console.log("Invalid arguments format:", functionCall.arguments);
           }
         } catch (error) {
           console.error("Error parsing function arguments:", error);
-          messageToSend = "An error occurred while processing the request.";
+          //messageToSend = "An error occurred while processing the request.";
         }
       } else {
         messageToSend = "No arguments found in the function call.";
-        console.log("No arguments found in function call");
+        //console.log("No arguments found in function call");
       }
     } else {
       messageToSend = "No valid content or function call found in the response.";
-      console.log("No valid content or function call found.");
+      //console.log("No valid content or function call found.");
     }
     
     console.log("Final message to be sent: ", messageToSend);

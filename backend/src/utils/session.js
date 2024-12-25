@@ -48,6 +48,41 @@ async function getSession(sessionId, network) {
   }
 }
 
+
+async function getGlobalSession(network) {
+  try {
+    const { GLOBAL_CHAT_HISTORY } = await getFirestorePaths(network); // Get paths dynamically
+    const globalRef = firestore
+      .collection(GLOBAL_CHAT_HISTORY) // Collection name
+      .doc(network); // Network (mainnet/testnet) as document
+
+    const globalDoc = await globalRef.get();
+
+    if (!globalDoc.exists) {
+      // If the global session does not exist, create a new one
+      const newGlobalSession = { messages: [] };
+      await globalRef.set(newGlobalSession);
+      console.log(`[getGlobalSession] 🔥 New global session created for network: ${network}`);
+      return newGlobalSession;
+    }
+
+    const globalData = globalDoc.data();
+
+    // Ensure messages array is valid
+    if (!Array.isArray(globalData.messages)) {
+      console.warn(`[getGlobalSession] ⚠️ Invalid 'messages' array for network: ${network}. Resetting to empty array.`);
+      globalData.messages = [];
+    }
+
+    console.log(`[getGlobalSession] ✅ Global session retrieved for network: ${network}`);
+    return globalData;
+  } catch (error) {
+    console.error(`[getGlobalSession] ❌ Error occurred while retrieving global session for network: ${network}`, error);
+    // Return default session to prevent errors in chat.js
+    return { messages: [] };
+  }
+}
+
 /**
  * Save a message to the session in Firestore
  * @param {string} sessionId - The unique session ID
@@ -83,4 +118,4 @@ async function saveSession(sessionId, network, messages) {
 }
 
 
-module.exports = { getSession, saveSession };
+module.exports = { getSession, getGlobalSession, saveSession };
