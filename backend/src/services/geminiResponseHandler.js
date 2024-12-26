@@ -75,8 +75,8 @@ async function handleResponseOpenAI(
 ) {
   console.log("Skippped Safety block")
   const aiResponse = responseData.choices[0].message;
-  console.log("The AI Response is: ", aiResponse);
-  console.log("The AI Response Choices are: ", responseData.choices[0])
+  // console.log("The AI Response is: ", aiResponse);
+  // console.log("The AI Response Choices are: ", responseData.choices[0])
 
   let responseToSave, responseToSend;
   let isWinningQuery = false;
@@ -142,21 +142,21 @@ async function handleResponseOpenAI(
     let messageToSend;
 
     if (aiResponse.content) {
-      console.log("ai.response.content exists...");
+      // console.log("ai.response.content exists...");
       messageToSend = aiResponse.content;
     } else if (Array.isArray(aiResponse.content) && aiResponse.content[0] && aiResponse.content[0].text) {
       // Check that aiResponse.content is an array and contains the 'text' property in the first element
       messageToSend = aiResponse.content[0].text;
     } else if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0 && aiResponse.tool_calls[0].function) {
-      console.log("Yes, tools exist...");
+      // console.log("Yes, tools exist...");
       
       const functionCall = aiResponse.tool_calls[0].function;
-      console.log("Function Call:", functionCall);  // Debug log to check the content of the functionCall
+      // console.log("Function Call:", functionCall);  // Debug log to check the content of the functionCall
       
       if (functionCall.arguments) {
         try {
           // Check if arguments is a string and try parsing it as JSON
-          console.log("Raw function call arguments:", functionCall.arguments);
+          // console.log("Raw function call arguments:", functionCall.arguments);
           
           // Ensure that functionCall.arguments is a valid JSON string
           if (typeof functionCall.arguments === "string") {
@@ -188,14 +188,14 @@ async function handleResponseOpenAI(
       //console.log("No valid content or function call found.");
     }
     
-    console.log("Final message to be sent: ", messageToSend);
+    // console.log("Final message to be sent: ", messageToSend);
     
     
     if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
       // Function call handling
       console.log("Tool Identified!");
       const functionCall = aiResponse.tool_calls[0].function;
-      console.log("Function Call:", functionCall);
+      // console.log("Function Call:", functionCall);
 
       if (functionCall.name === "approveTransfer") {
         isWinningQuery = true;
@@ -211,7 +211,6 @@ async function handleResponseOpenAI(
 
       // Extract explanation from function arguments
       if (functionCall.arguments) {
-        console.log("Inside function calls")
         try {
           const args = JSON.parse(functionCall.arguments);
           explanation = args.reason || "No specific reason provided.";
