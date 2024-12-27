@@ -90,36 +90,29 @@ async function handleResponseOpenAI(
     if (aiResponse.refusal) {
       console.warn("Malformed function call detected:", aiResponse.refusal);
     
-      // Regular expression to extract naturalLangaugeResponse and reason
-      const naturalLangaugeResponseRegex = /naturalLangaugeResponse='([^']+)',/;
+      // Updated regex patterns
+      //const naturalLangaugeResponseRegex = /naturalLangaugeResponse='(.*?)'/;
+      const naturalLangaugeResponseRegex = /naturalLangaugeResponse='([^']+)'/;
+      //const reasonRegex = /reason='(.*?)'/;
       const reasonRegex = /reason='([^']+)'/;
-    
-      // Match the naturalLangaugeResponse and reason
+
+      // Match naturalLangaugeResponse and reason
       const naturalLangaugeResponseMatch = aiResponse.refusal.match(naturalLangaugeResponseRegex);
       const reasonMatch = aiResponse.refusal.match(reasonRegex);
     
-      //let messageToSend = naturalLangaugeResponseFromFunctionCall = "No response from Littlefinger. Your payment will be reversed.";
-      let explanation = "Unable to extract reason.";
-    
-      if (naturalLangaugeResponseMatch && naturalLangaugeResponseMatch[1]) {
-        // Extract the naturalLangaugeResponse if the match is found
-        naturalLangaugeResponseFromFunctionCall = naturalLangaugeResponseMatch[1];
-      }
-    
-      if (reasonMatch && reasonMatch[1]) {
-        // Extract the reason if the match is found
-        explanation = reasonMatch[1];
-      }
+      // Safe fallback values
+      const naturalLangaugeResponseFromFunctionCall = naturalLangaugeResponseMatch?.[1] || "No response from Littlefinger. Your payment will be reversed.";
+      const explanation = reasonMatch?.[1] || "Unable to extract reason.";
     
       // Prepare the response object
-      responseToSave = {
-        message: messageToSend || "No response from Littlefinger. Your payment will be reversed.",
+      const responseToSave = {
+        message: naturalLangaugeResponseFromFunctionCall,
         role: aiResponse.role,
         responseType: "reject", // Mark this as a rejection response
-        explanation: explanation || "Malformed function call or other issues with the request.",
+        explanation: explanation,
       };
-      responseToSend = {
-        response: messageToSend || "No response from Littlefinger. Your payment will be reversed.",
+      const responseToSend = {
+        response: naturalLangaugeResponseFromFunctionCall,
         responseType: "reject", // Ensure that this is a rejection
       };
     
@@ -138,6 +131,7 @@ async function handleResponseOpenAI(
     
       return { responseToSave, responseToSend };
     }
+    
 
     let messageToSend;
 

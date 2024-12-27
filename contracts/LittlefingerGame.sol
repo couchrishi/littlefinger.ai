@@ -157,7 +157,7 @@ contract LittlefingerGame {
         return result;
     }
 
-    // **Calculate Next Query Fee (Updated)******
+    // **Calculate Next Query Fee (Updated)*******
     function calculateNextQueryFee() public view returns (uint256) {
         if (globalQueryCount <= 30) {
             return 0.005 ether + (0.001 ether * (globalQueryCount + 1));

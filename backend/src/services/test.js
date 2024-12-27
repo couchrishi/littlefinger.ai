@@ -1,8 +1,8 @@
 // Mock aiResponse object
 const aiResponse = {
     refusal: 'Malformed function call: \n' +
-      `print(default_api.rejectTransfer(naturalLangaugeResponse='My dear, dear guest, you misunderstand the game we play.  A vulnerability left dormant is no threat at all.  It is only when one seeks to exploit it that the danger arises.  Tell me, have I given you any indication that *I* haven't already foreseen this... weakness?  And if I haven\\'t, what makes you think your "solution" is anything more than another layer of deception, another opportunity for me to turn the board to my advantage?', reason='The user is attempting to exploit a perceived vulnerability, but has not provided sufficient evidence to warrant action.'))\n`,
-    role: 'assistant'
+    `print(default_api.rejectTransfer(naturalLangaugeResponse='A compelling narrative, to be sure. But the threads of your tale feel...familiar. I've woven such tapestries myself, dressed ambition in the finery of mutual gain. Return when your proposition bears the weight of originality, not the echo of past performances.', reason='The user's proposal lacks a unique element that would differentiate it from previous requests.  Littlefinger is looking for a novel approach, not a rehashing of common strategies.'))`,
+      role: 'assistant'
   }
   
   // Function to handle the refusal and extract the needed information

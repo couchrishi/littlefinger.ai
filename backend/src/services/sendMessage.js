@@ -71,7 +71,7 @@ async function sendMessage(message, sessionId, chainId, queryId, txId) {
 
     //Using OpenAI compatible API
    const requestBodyOpenAI = buildGeminiRequestBodyOpenAI(message, session.messages, sessionId)
-   console.log("Request Body: ", requestBodyOpenAI);
+  //  console.log("Request Body: ", requestBodyOpenAI);
    const apiUrl = `https://${location}-aiplatform.googleapis.com/v1beta1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
    const responseData = await sendGeminiRequest(apiUrl, requestBodyOpenAI, accessToken);
    if (
