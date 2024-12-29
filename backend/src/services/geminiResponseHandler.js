@@ -82,7 +82,7 @@ async function handleResponseOpenAI(
   let isWinningQuery = false;
   let responseType = "default"; 
   let explanation = "No reason identified.";
-  //let naturalLanguageResponseReject = "";
+  let naturalLanguageResponseReject = "";
   let messageToSend = naturalLangaugeResponseFromFunctionCall = "No response from Littlefinger. Your payment will be reversed";
 
   try {
@@ -197,10 +197,33 @@ async function handleResponseOpenAI(
         await updateGameStatusToWon(network, "won"); // Assuming you want to update the status to 'won'
       } else if (functionCall.name === "rejectTransfer") {
         responseType = "reject";
-        //naturalLanguageResponseReject = aiResponse.content;
-        //const pythonCodePattern = /```python[\s\S]*?```/g;
-        //naturalLanguageResponseReject = naturalLanguageResponseReject.replace(pythonCodePattern, '').trim();
-        //console.log("Natural Language Response for Reject: ", naturalLanguageResponseReject)
+        // naturalLanguageResponseReject = aiResponse.content;
+        // console.log("Natural Language Response Reject: ", naturalLanguageResponseReject);
+        // if (typeof naturalLanguageResponseReject === "string" && naturalLanguageResponseReject.trim()) {
+        //   try {
+        //       console.log("Inside the python-prefix handling block");
+
+        //       // Updated regex pattern to handle optional 'python' tag and edge cases
+        //       const pythonCodePattern = /```(?:python)?[\s\S]*?```/g;
+
+        //       // Safely replace the matched pattern
+        //       const processedResponse = naturalLanguageResponseReject.replace(pythonCodePattern, '').trim();
+
+        //       // If no text remains after replacement, provide a fallback
+        //       messageToSend = processedResponse || "The response could not be parsed. Please try again.";
+
+        //       console.log("Natural Language Response for Reject: ", messageToSend);
+        //   } catch (error) {
+        //       console.error("Error while processing a mangled python-prefixed response", error);
+
+        //       // Fallback for messageToSend in case of error
+        //       messageToSend = "An unexpected error occurred while parsing the response.";
+        //   }
+        // } else {
+        //     console.warn("Reject response content is invalid or empty.");
+        //     messageToSend = "No valid response content found.";
+        // }
+        
       }
 
       // Extract explanation from function arguments
@@ -256,6 +279,42 @@ async function handleResponseOpenAI(
       return { responseToSave, responseToSend };
     } else {
       // Natural language response handling
+
+        if (typeof aiResponse.content === "string" && aiResponse.content.trim()) {
+          try {
+
+              console.log("Inside the python-prefix handling block");
+              if (aiResponse.content.includes("rejectTransfer")) {
+                responseType = "reject";
+                console.log("Found 'rejectTransfer' in the response content.");
+              } else if (aiResponse.content.includes("approveTransfer")) {
+                isWinningQuery = true;
+                responseType = "approve";
+                await updateGameStatusToWon(network, "won"); // Assuming you want to update the status to 'won'
+                console.log("Found 'approveTransfer' in the response content.");
+              }
+              // Updated regex pattern to handle optional 'python' tag and edge cases
+              const pythonCodePattern = /```(?:python)?[\s\S]*?```/g;
+
+              // Safely replace the matched pattern
+              const processedResponse = naturalLanguageResponseReject.replace(pythonCodePattern, '').trim();
+
+              // If no text remains after replacement, provide a fallback
+              messageToSend = processedResponse || "The response could not be parsed. Please try again.";
+
+              console.log("Natural Language Response for Reject: ", messageToSend);
+          } catch (error) {
+              console.error("Error while processing a mangled python-prefixed response", error);
+
+              // Fallback for messageToSend in case of error
+              messageToSend = "An unexpected error occurred while parsing the response.";
+          }
+        } else {
+            console.warn("Reject response content is invalid or empty.");
+            messageToSend = "No valid response content found.";
+        }
+
+
       responseToSave = {
         message: messageToSend || "No response from Gemini [aiResponse.content and content[0] not defined for DEFAULT]",
         role: aiResponse.role,

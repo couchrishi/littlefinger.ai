@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { gamePrompts } = require('../config/prompts');
+const { gamePrompts, modelConfig } = require('../config/prompts');
 const { functionDeclarationsNative, functionDeclarationsOpenAI, toolConfigNative, toolConfigOpenAI  } = require('../utils/geminiFunctions');
 
 
@@ -145,10 +145,11 @@ function buildGeminiRequestBodyOpenAI(message, globalMessages, sessionId) {
       }
     ],
     tools: functionDeclarationsOpenAI,
-    tool_choice: 'auto'
+    tool_choice: 'auto',
+    temperature: modelConfig.temperature,
+    top_p: modelConfig.top_p,
+    // top_k: modelConfig.top_k,
   };
 }
-
-
 
 module.exports = { sendGeminiRequest, buildGeminiRequestBodyNative, buildGeminiRequestBodyOpenAI };

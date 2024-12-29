@@ -20,7 +20,9 @@ async function getChatInstance(systemPrompt, context = '') {
   const chatModel = await initializeVertexModel(currentNetwork); // Use 'mainnet' for production
   return chatModel.startChat({
     model: 'models/gemini-1-5-pro',
-    temperature: 0.7,
+    top_p: 0.85, // Expands the range of token sampling
+    top_k: 50, // Allows more diverse outputs
+    temperature: 0.8,
     context,
     system: systemPrompt,
   });
