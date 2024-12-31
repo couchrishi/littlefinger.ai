@@ -21,8 +21,8 @@ app.use('/api', chatRoutes); // Existing chat routes
 app.use('/api', authRoutes); // New auth route
 
 // Start the server on port 8080
-//const PORT = 8080;
-const PORT = 3001;
+const PORT = 8080;
+//const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }).on('error', (err) => {
