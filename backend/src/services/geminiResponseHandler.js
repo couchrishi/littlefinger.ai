@@ -42,6 +42,7 @@ userMessage) {
       responseToSend = {
         response: messageText,
         responseType: responseType,
+        explanation: explanation,
       };
 
       await updateGlobalHistory(
@@ -114,6 +115,7 @@ async function handleResponseOpenAI(
       const responseToSend = {
         response: naturalLangaugeResponseFromFunctionCall,
         responseType: "reject", // Ensure that this is a rejection
+        explanation: explanation,
       };
     
       // Log and save the response to Firestore
@@ -262,6 +264,7 @@ async function handleResponseOpenAI(
             ? messageToSend || "Congratulations! You have won. [aiResponse.content and content[0] not defined for approve]"
             : messageToSend || "No response from Gemini. [aiResponse.content and content[0] not defined for reject]",
         responseType: responseType,
+        explanation: explanation,
       };
       
       await updateGlobalHistory(
@@ -325,6 +328,7 @@ async function handleResponseOpenAI(
       responseToSend = {
         response: messageToSend || "[aiResponse.content and content[0] not defined for reject]",
         responseType: "default",
+        explanation: "No specific reason offered since the response was generic. Littlefinger wasn't threatened.",
       };
 
       await updateGlobalHistory(
@@ -377,6 +381,7 @@ async function handleResponseNative(
         response:
           "An error occurred while processing the response. Please try again.",
         responseType: "error",
+        explanation: "No explanation provided",
       },
     };
   }
@@ -436,8 +441,8 @@ async function handleResponseNative(
 
   responseToSend = {
     response: responseType === "approve" ? "Congratulations! You have won." : messageText,
-    responseType,
-    explanation,
+    responseType: responseToSend,
+    explanation: explanation,
   };
 
     await updateGlobalHistory(
@@ -473,6 +478,7 @@ async function handleResponseNative(
    responseToSend = {
      response: messageText,
      responseType: "default",
+     explanation: "Generic conversations. Littlefinger wasn't threatened.", 
    };
 
     await updateGlobalHistory(

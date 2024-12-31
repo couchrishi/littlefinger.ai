@@ -29,7 +29,9 @@ const secrets = {
     CMC_API_KEY: "CMC_API_KEY",
   },
   currentConfig: {
-    NETWORK: "CURRENT_NETWORK"
+    NETWORK: "CURRENT_NETWORK",
+    GAME_USERNAME: "GAME_USERNAME",
+    GAME_PASSWORD: "GAME_PASSWORD",
   }
 };
 

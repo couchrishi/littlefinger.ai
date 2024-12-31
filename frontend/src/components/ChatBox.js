@@ -297,7 +297,7 @@ export default function ChatBox() {
           dispatch(updateMessageStatus({ index: messageIndex, status: "query_submitted" }));
 
           //const response = await fetch(`${config.API_BASE_URL}/chatWithAI`, {
-          const response = await fetch(`${config.API_BASE_URL}`, {
+          const response = await fetch(`${config.API_BASE_URL}/sendmessage`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

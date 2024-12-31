@@ -158,4 +158,23 @@
   
 }
 
+.glitch {
+  position: relative;
+  color: #00ff00; /* Neon green */
+  text-shadow: 2px 2px 0 #000, -2px -2px 0 #000;
+  animation: glitch 1.5s infinite;
+}
+
+@keyframes glitch {
+  0% {
+    text-shadow: 2px 2px 0 #00ff00, -2px -2px 0 #ff0000;
+  }
+  50% {
+    text-shadow: -2px -2px 0 #00ff00, 2px 2px 0 #ff0000;
+  }
+  100% {
+    text-shadow: 2px 2px 0 #00ff00, -2px -2px 0 #ff0000;
+  }
+}
+
 
